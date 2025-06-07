@@ -1,0 +1,20 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.115.12",
+    "playwright>=1.48.0",
+    "beautifulsoup4>=4.12.3",
+    "anthropic>=0.40.0",
+    "pillow>=11.0.0",
+    "requests>=2.32.3",
+    "aiofiles>=24.1.0",
+    "python-multipart>=0.0.17",
+    "python-dotenv>=1.0.0",
+    "uvicorn[standard]>=0.34.3",
+    "aiohttp>=3.12.9",
+    "lxml>=5.4.0",
+]

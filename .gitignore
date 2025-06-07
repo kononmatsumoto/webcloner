@@ -1,0 +1,102 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.staging
+
+# API Keys (just in case they're in separate files)
+*api_key*
+*secret*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+dist/
+
+# Build outputs
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package lock files (optional - some prefer to include them)
+package-lock.json
+
+# Test artifacts
+coverage/
+.coverage
+.pytest_cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+
+# Generated HTML files from cloning (if you don't want to commit test outputs)
+*_clone*.html
+*_cloned*.html
+
+# Any debug/test files that might have API responses
+api_response*.json
+test_*.html 
