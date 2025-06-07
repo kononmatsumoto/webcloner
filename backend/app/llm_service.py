@@ -24,24 +24,12 @@ class LLMService:
             # Build simple but effective system prompt
             system_prompt = """You are an expert web developer who creates pixel-perfect HTML clones.
 
- CRITICAL IMAGE RULE: NEVER USE LOCAL FILE NAMES 
- FORBIDDEN: url('iphone-15.jpg'), url('macbook-pro.jpg'), url('apple-watch.jpg')
- REQUIRED: Use full HTTPS URLs: url('https://images.unsplash.com/photo-xxx')
-
 CRITICAL RULES:
 1. Generate EVERY single item provided in the data - NO EXCEPTIONS
 2. Never use "..." or truncation phrases
 3. Never add explanatory notes about implementation
 4. Count items as you generate them: 1, 2, 3... up to the final number
 5. Use real URLs and data from the scraped content
-6. For images, ONLY use complete HTTPS URLs - NO local files
-
- FOR APPLE PRODUCTS, USE THESE EXACT BACKGROUND IMAGES:
-- iPhone 15 Pro: url('https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=1200&h=800&fit=crop&auto=format')
-- iPhone 15: url('https://images.unsplash.com/photo-1603791239113-3818cd1ef987?w=1200&h=800&fit=crop&auto=format')
-- Apple Watch: url('https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=1200&h=800&fit=crop&auto=format')
-- MacBook Pro: url('https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=1200&h=800&fit=crop&auto=format')
-- iPad: url('https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?w=1200&h=800&fit=crop&auto=format')
 
 For Hacker News specifically:
 - Orange header (#ff6600) with proper navigation
@@ -138,276 +126,213 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
         return "\n".join(prompt_parts)
     
     def _build_generic_simple_prompt(self, scraped_data: Dict) -> str:
-        """Build a simple, focused prompt for generic website cloning"""
-        data = scraped_data
-        url = data.get('url', '')
+        """Build simple prompt for general websites"""
         
-        # Build navigation enforcement first
-        nav_enforcement = []
-        navigation = data.get('navigation', {})
-        if navigation.get('headerLinks'):
-            nav_enforcement.extend([
-                " MANDATORY NAVIGATION IMPLEMENTATION (NO ALTERNATIVES ALLOWED):",
-                "",
-                "COPY THIS EXACT CSS (NO MODIFICATIONS):",
-                "nav { background: rgba(0,0,0,0.8); height: 44px; position: fixed; top: 0; width: 100%; z-index: 9999; backdrop-filter: saturate(180%) blur(20px); }",
-                ".nav-container { max-width: 980px; margin: 0 auto; display: flex; align-items: center; height: 100%; padding: 0 22px; position: relative; }",
-                ".nav-logo { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); z-index: 10; }",
-                ".nav-logo svg { width: 14px; height: 44px; fill: #f5f5f7; display: block; }",
-                ".nav-center { width: 100%; display: flex; justify-content: center; align-items: center; gap: 35px; margin: 0 60px; }",
-                ".nav-center a { color: #f5f5f7; text-decoration: none; font-size: 12px; font-weight: 400; letter-spacing: -0.01em; padding: 0 8px; transition: opacity 0.3s; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; }",
-                ".nav-center a:hover { opacity: 0.8; }",
-                "body { padding-top: 44px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; }",
-                "",
-                "COPY THIS EXACT HTML (NO MODIFICATIONS):",
-                "<nav>",
-                "  <div class='nav-container'>",
-                "    <div class='nav-logo'>",
-                "      <svg width='16' height='44' viewBox='0 0 16 44' fill='#f5f5f7'><path d='M8.074 31.612c-1.155 0-1.976-.711-3.646-.711-1.776 0-2.3.679-3.544.711-2.489.086-4.688-2.789-6.306-5.611-3.223-5.611 0.844-14.1 5.559-13.8 2.144.134 3.344 1.289 5.026 1.289 1.681 0 2.67-1.289 5.113-1.289 1.833 0 3.404.956 4.606 2.589-4.034 2.211-3.378 7.977.889 9.944-.755 1.944-1.722 3.889-3.111 5.6-1.256 1.544-2.644 2.278-4.586 2.278zm-1.355-19.956c-.089-2.266 1.689-4.111 3.778-4.244 0.267 2.4-1.6 4.244-3.778 4.244z'/></svg>",
-                "    </div>",
-                "    <div class='nav-center'>",
-                "      <a href='#'>Store</a>",
-                "      <a href='#'>Mac</a>",
-                "      <a href='#'>iPad</a>",
-                "      <a href='#'>iPhone</a>",
-                "      <a href='#'>Watch</a>",
-                "      <a href='#'>Vision</a>",
-                "      <a href='#'>AirPods</a>",
-                "      <a href='#'>TV & Home</a>",
-                "      <a href='#'>Entertainment</a>",
-                "      <a href='#'>Accessories</a>",
-                "      <a href='#'>Support</a>",
-                "    </div>",
-                "  </div>",
-                "</nav>",
-                "",
-                "ALSO ADD THESE SECTION STYLES:",
-                ".product-section { border-bottom: 1px solid #d2d2d7; margin-bottom: 11px; padding-bottom: 40px; }",
-                ".section-divider { border-bottom: 1px solid #d2d2d7; margin: 20px 0; }",
-                ".product-card { transition: transform 0.3s ease; border-radius: 18px; overflow: hidden; }",
-                ".product-card:hover { transform: scale(1.02); }",
-                "",
-            ])
-        
-        # Add navigation enforcement at the top
-        prompt_parts = [
-            f"Clone this website into a complete HTML page: {url}",
-            "",
-            "CRITICAL IMPLEMENTATION RULES:",
-            "1. Create a COMPLETE, FULLY FUNCTIONAL HTML page",
-            "2. Include ALL content sections found in the scraped data",
-            "3. Use modern CSS with responsive design",
-            "4. Maintain the original visual hierarchy and layout",
-            "5. Ensure all text is readable with proper contrast",
-            "",
-        ]
-        
-        # Add navigation enforcement at the top
-        prompt_parts.extend(nav_enforcement)
-        
-        # Define articles from data
+        url = scraped_data.get('url', '').lower()
+        data = scraped_data.get('data', {})
         articles = data.get('articles', [])
         
-        # Add comprehensive image information
-        hero_images = data.get('hero_images', [])
-        product_images = data.get('product_images', [])
-        logo_images = data.get('logo_images', [])
+        prompt_parts = [
+            f"Generate complete HTML clone of {url}",
+            "",
+            "CRITICAL RULES: 1. Generate EVERY single item provided in the data - NO EXCEPTIONS",
+            "2. Never use '...' or truncation phrases",
+            "3. Never add explanatory notes about implementation",
+            "4. Count items as you generate them: 1, 2, 3... up to the final number",
+            "5. Include ALL images using their actual URLs for proper loading",
+            "6. Include ALL text content using the exact text from the original website",
+            "",
+            "OUTPUT: Complete HTML with inline CSS. No explanations.",
+            ""
+        ]
         
-        if hero_images or product_images:
-            prompt_parts.append(f"🎨 IMAGE SYSTEM ({len(hero_images)} heroes, {len(product_images)} products):")
+        # Add text content first - this is crucial for the website to have actual content
+        text_content = data.get('textContent', {})
+        if text_content:
             prompt_parts.extend([
-                "",
-                " CRITICAL IMAGE & CARD IMPLEMENTATION RULES:",
-                "- NEVER use logo images as product backgrounds",
-                "- Always prioritize hero images for main sections", 
-                "- Include ALL background images that were extracted from original site",
-                "- Add proper image dimensions and loading attributes with fallbacks",
-                "- Use high-quality placeholder images if original images fail to load",
-                "- Ensure all product sections have their corresponding background images",
-                "- Match original image placement and styling exactly",
-                "- Add proper aspect ratios and object-fit for consistent image display",
-                "",
-                " ENHANCED CSS FOR SECTIONS AND CARDS (COPY EXACTLY):",
-                "/* CLEAN APPLE-STYLE CSS */",
-                "body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; }",
-                ".product-section { padding: 80px 20px; text-align: center; border-bottom: 1px solid #d2d2d7; }",
-                ".product-card { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }",
-                ".product-content { margin-bottom: 40px; }",
-                ".product-title { font-size: 48px; font-weight: 600; color: #1d1d1f; margin: 0 0 10px; line-height: 1.1; }",
-                ".product-subtitle { font-size: 24px; color: #86868b; margin: 0 0 30px; font-weight: 400; }",
-                ".product-links { display: flex; gap: 30px; justify-content: center; margin-bottom: 40px; }",
-                ".product-links a { color: #0071e3; text-decoration: none; font-size: 21px; font-weight: 400; }",
-                ".product-links a:hover { text-decoration: underline; }",
-                ".product-image-container { width: 100%; max-width: 800px; margin: 0 auto; position: relative; }",
-                ".product-image { width: 100%; height: auto; max-height: 500px; object-fit: contain; display: block; border-radius: 0; }",
-                ".hero-section { padding: 80px 20px; text-align: center; background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); color: white; }",
-                ".hero-title { font-size: 56px; font-weight: 600; margin: 0 0 10px; line-height: 1.1; color: white !important; }",
-                ".hero-subtitle { font-size: 28px; margin: 0 0 30px; color: #a1a1a6; font-weight: 400; }",
-                ".hero-image { width: 100%; max-width: 800px; height: auto; max-height: 600px; object-fit: contain; margin: 40px auto; display: block; }",
-                "",
-                "/* Apple Watch Section Specific Styles */",
-                ".watch-section { background: linear-gradient(135deg, #000 0%, #1a1a1a 100%); color: white !important; padding: 80px 20px; text-align: center; }",
-                ".watch-title { font-size: 72px; font-weight: 700; color: white !important; margin: 0 0 10px; line-height: 1.1; letter-spacing: -2px; }",
-                ".watch-series { font-size: 32px; color: #a1a1a6 !important; margin: 0 0 20px; font-weight: 400; }",
-                ".watch-subtitle { font-size: 28px; color: white !important; margin: 0 0 30px; font-weight: 400; }",
-                "h1, h2, h3 { color: inherit; }",
-                ".product-section.dark { background: #000; color: white; }",
-                ".product-section.dark .product-title { color: white !important; }",
-                ".product-section.dark .product-subtitle { color: #a1a1a6 !important; }",
-                "",
-                "/* Responsive Design */",
-                "@media (max-width: 768px) {",
-                "  .product-title { font-size: 32px; }",
-                "  .product-subtitle { font-size: 19px; }",
-                "  .hero-title { font-size: 36px; }",
-                "  .hero-subtitle { font-size: 21px; }",
-                "  .product-links { flex-direction: column; gap: 15px; }",
-                "}",
-                "",
-                " SIMPLE IMAGE SYSTEM (WORKING SOLUTION):",
-                "",
-                "/* Image CSS Rules */",
-                "img { max-width: 100%; height: auto; display: block; margin: 0 auto; }",
-                ".product-image { width: 100%; max-width: 600px; height: auto; object-fit: contain; }",
-                ".hero-image { width: 100%; max-width: 800px; height: auto; object-fit: contain; }",
-                "",
-                " RESPONSIVE GRID LAYOUT (ADD TO CSS):",
-                ".products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto; padding: 0 20px; }",
-                ".product-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 40px; margin: 60px 0; }",
-                ".product-content { flex: 1; min-width: 300px; }",
-                ".product-visual { flex: 1; min-width: 300px; text-align: center; }",
-                "",
-                " REQUIRED HTML STRUCTURE FOR EACH PRODUCT:",
-                "<section class='product-section'>",
-                "  <div class='product-card'>",
-                "    <h2 class='product-title'>Product Name</h2>",
-                "    <p class='product-subtitle'>Product Description</p>",
-                "    <div class='product-links'>",
-                "      <a href='#'>Learn more ></a>",
-                "      <a href='#'>Buy ></a>",
-                "    </div>",
-                "    <img class='product-image' src='image-url' alt='Product Name' loading='lazy' onerror=\"this.src='fallback-url'; this.onerror=null;\">",
-                "  </div>",
-                "</section>",
-                "",
-                " APPLE-STYLE COLOR SCHEME:",
-                "Primary Text: #1d1d1f | Secondary Text: #86868b | Links: #0071e3 | Background: #f5f5f7 | Dark Background: #000",
-                "",
+                " ACTUAL WEBSITE TEXT CONTENT (MUST INCLUDE ALL):",
+                ""
             ])
             
-            if hero_images:
-                prompt_parts.append("✨ HERO IMAGES (USE FOR MAIN SECTIONS):")
-                for img in hero_images[:8]:  # Top 8 hero images
-                    src = img.get('src', '')
-                    alt = img.get('alt', '')
-                    quality_score = img.get('quality_score', 0)
-                    if src:
-                        prompt_parts.append(f"   {src} (quality: {quality_score}) - {alt}")
-                prompt_parts.extend([
-                    "  → Use these for hero sections with .hero-image class",
-                    "  → Apply proper aspect ratios and object-fit: contain",
-                    ""
-                ])
+            # Add navigation text
+            nav_text = text_content.get('navigationText', [])
+            if nav_text:
+                prompt_parts.append(f"- NAVIGATION TEXT ({len(nav_text)} items):")
+                for i, nav in enumerate(nav_text[:15], 1):  # Show first 15 nav items
+                    text = nav.get('text', '').strip()
+                    href = nav.get('href', '#')
+                    if text:
+                        prompt_parts.append(f"  {i}. \"{text}\" → {href}")
+                prompt_parts.append("  → Include ALL navigation links with exact text")
+                prompt_parts.append("")
             
-            if product_images:
-                prompt_parts.append(" PRODUCT IMAGES (PRIORITIZE THESE FOR SPECIFIC PRODUCTS):")
+            # Add hero/banner content
+            hero_content = text_content.get('heroContent', [])
+            if hero_content:
+                prompt_parts.append(f"- HERO/BANNER CONTENT ({len(hero_content)} sections):")
+                for i, hero in enumerate(hero_content[:5], 1):
+                    title = hero.get('title', '').strip()
+                    subtitle = hero.get('subtitle', '').strip()
+                    cta_texts = hero.get('ctaText', [])
+                    if title:
+                        prompt_parts.append(f"  {i}. Title: \"{title}\"")
+                    if subtitle:
+                        prompt_parts.append(f"     Subtitle: \"{subtitle}\"")
+                    if cta_texts:
+                        prompt_parts.append(f"     CTAs: {', '.join([f'\"{text}\"' for text in cta_texts])}")
+                prompt_parts.append("  → Create prominent hero sections with large text")
+                prompt_parts.append("")
+            
+            # Add product content
+            product_content = text_content.get('productContent', [])
+            if product_content:
+                prompt_parts.append(f"- PRODUCT CONTENT ({len(product_content)} products):")
+                for i, product in enumerate(product_content[:8], 1):
+                    title = product.get('title', '').strip()
+                    description = product.get('description', '').strip()
+                    price = product.get('price', '').strip()
+                    if title:
+                        prompt_parts.append(f"  {i}. \"{title}\"")
+                    if description and len(description) < 100:
+                        prompt_parts.append(f"     Description: \"{description}\"")
+                    if price:
+                        prompt_parts.append(f"     Price: \"{price}\"")
+                prompt_parts.append("  → Create product cards with all text content")
+                prompt_parts.append("")
+            
+            # Add section content
+            section_content = text_content.get('sectionContent', [])
+            if section_content:
+                prompt_parts.append(f"- SECTION CONTENT ({len(section_content)} sections):")
+                for i, section in enumerate(section_content[:10], 1):
+                    heading = section.get('heading', '').strip()
+                    content = section.get('content', '').strip()
+                    if heading:
+                        prompt_parts.append(f"  {i}. Heading: \"{heading}\"")
+                    if content and len(content) < 200:
+                        prompt_parts.append(f"     Content: \"{content}\"")
+                prompt_parts.append("  → Create sections with headings and content")
+                prompt_parts.append("")
+            
+            # Add button texts
+            button_texts = text_content.get('buttonTexts', [])
+            if button_texts:
+                prompt_parts.append(f"- BUTTON TEXT ({len(button_texts)} buttons):")
+                for i, btn in enumerate(button_texts[:10], 1):
+                    text = btn.get('text', '').strip()
+                    btn_type = btn.get('type', 'button')
+                    if text:
+                        prompt_parts.append(f"  {i}. \"{text}\" ({btn_type})")
+                prompt_parts.append("  → Create buttons with exact text and proper styling")
+                prompt_parts.append("")
+            
+            # Add all other text from the website
+            all_text = text_content.get('allText', [])
+            if all_text:
+                # Filter and group text by importance
+                headings = [t for t in all_text if t.get('tagName', '').startswith('h') and len(t.get('text', '').strip()) > 0]
+                paragraphs = [t for t in all_text if t.get('tagName') == 'p' and len(t.get('text', '').strip()) > 5]
+                links = [t for t in all_text if t.get('tagName') == 'a' and len(t.get('text', '').strip()) > 0]
                 
-                # Categorize images by product type for better matching
-                iphone_images = []
-                macbook_air_images = []
-                macbook_pro_images = []
-                ipad_images = []
-                watch_images = []
-                other_images = []
+                if headings:
+                    prompt_parts.append(f"- HEADINGS ({len(headings)} items):")
+                    for i, heading in enumerate(headings[:15], 1):
+                        tag = heading.get('tagName', 'h1')
+                        text = heading.get('text', '').strip()
+                        if text and len(text) < 100:
+                            prompt_parts.append(f"  {i}. <{tag}>\"{text}\"</{tag}>")
+                    prompt_parts.append("")
                 
-                for img in product_images[:15]:  # Check more images for better categorization
-                    src = img.get('src', '').lower()
-                    alt = img.get('alt', '').lower()
-                    quality_score = img.get('quality_score', 0)
-                    
-                    if any(keyword in src + alt for keyword in ['iphone', 'phone', 'mobile']):
-                        iphone_images.append(img)
-                    elif any(keyword in src + alt for keyword in ['macbook air', 'air']):
-                        macbook_air_images.append(img)
-                    elif any(keyword in src + alt for keyword in ['macbook pro', 'pro', 'laptop', 'mac']):
-                        macbook_pro_images.append(img)
-                    elif any(keyword in src + alt for keyword in ['watch', 'series']):
-                        watch_images.append(img)
-                    elif any(keyword in src + alt for keyword in ['ipad', 'tablet']):
-                        ipad_images.append(img)
-                    else:
-                        other_images.append(img)
+                if paragraphs:
+                    prompt_parts.append(f"- PARAGRAPH TEXT ({len(paragraphs)} items):")
+                    for i, para in enumerate(paragraphs[:12], 1):
+                        text = para.get('text', '').strip()
+                        if text and len(text) < 150:
+                            prompt_parts.append(f"  {i}. \"{text}\"")
+                    prompt_parts.append("")
                 
-                if iphone_images:
-                    prompt_parts.append("   iPhone 15 Pro Images (BEST MATCHES):")
-                    for img in iphone_images[:3]:
-                        src = img.get('src', '')
-                        alt = img.get('alt', '')
-                        quality_score = img.get('quality_score', 0)
-                        if src:
-                            prompt_parts.append(f"     {src} (quality: {quality_score}) - {alt}")
-                
-                if macbook_air_images:
-                    prompt_parts.append("   MacBook Air 15\" Images (BEST MATCHES):")
-                    for img in macbook_air_images[:3]:
-                        src = img.get('src', '')
-                        alt = img.get('alt', '')
-                        quality_score = img.get('quality_score', 0)
-                        if src:
-                            prompt_parts.append(f"     {src} (quality: {quality_score}) - {alt}")
-                
-                if macbook_pro_images:
-                    prompt_parts.append("  MacBook Pro Images (BEST MATCHES):")
-                    for img in macbook_pro_images[:3]:
-                        src = img.get('src', '')
-                        alt = img.get('alt', '')
-                        quality_score = img.get('quality_score', 0)
-                        if src:
-                            prompt_parts.append(f"     {src} (quality: {quality_score}) - {alt}")
-                
-                if watch_images:
-                    prompt_parts.append("   Apple Watch Series 9 Images (BEST MATCHES):")
-                    for img in watch_images[:3]:
-                        src = img.get('src', '')
-                        alt = img.get('alt', '')
-                        quality_score = img.get('quality_score', 0)
-                        if src:
-                            prompt_parts.append(f"     {src} (quality: {quality_score}) - {alt}")
-                
-                if ipad_images:
-                    prompt_parts.append("   iPad Images (BEST MATCHES):")
-                    for img in ipad_images[:3]:
-                        src = img.get('src', '')
-                        alt = img.get('alt', '')
-                        quality_score = img.get('quality_score', 0)
-                        if src:
-                            prompt_parts.append(f"     {src} (quality: {quality_score}) - {alt}")
-                
-                prompt_parts.extend([
-                    "",
-                    "   PRIORITIZATION RULES:",
-                    "  → Use categorized images above for matching products",
-                    "  → iPhone images go with 'Titanium. So strong. So light. So Pro.'",
-                    "  → MacBook Air images go with 'Impressively big. Impossibly thin.'",
-                    "  → MacBook Pro images go with 'Mind-blowing. Head-turning.' - MUST SHOW IMAGE",
-                    "  → Apple Watch images go with 'Smarter. Brighter. Mightier.'",
-                    "  → iPad images go with 'Lovable. Drawable. Magical.'",
-                    "  → For Watch section: USE DARK BACKGROUND with WHITE TEXT",
-                    "",
-
-                    "  → Add the onerror fallback to all img tags",
-                    ""
-                ])
+                if links:
+                    prompt_parts.append(f"- LINK TEXT ({len(links)} items):")
+                    for i, link in enumerate(links[:12], 1):
+                        text = link.get('text', '').strip()
+                        if text and len(text) < 50:
+                            prompt_parts.append(f"  {i}. \"{text}\"")
+                    prompt_parts.append("")
+            
+            prompt_parts.extend([
+                " CRITICAL TEXT CONTENT RULES:",
+                "- Include ALL the text content shown above - EVERY SINGLE ITEM",
+                "- Use the EXACT text from the original website",
+                "- Do NOT use placeholder text like 'Lorem ipsum' or generic content",
+                "- Maintain the original text hierarchy and structure",
+                "- Ensure all buttons, links, and navigation use the actual text",
+                ""
+            ])
+        
+        # Add comprehensive image information
+        images = data.get('images', [])
+        background_images = data.get('backgroundImages', [])
+        logo_images = data.get('logoImages', [])
+        
+        if images or background_images or logo_images:
+            prompt_parts.extend([
+                " IMAGES TO INCLUDE (USE EXACT URLS):",
+            ])
             
             if logo_images:
-                prompt_parts.append("LOGO IMAGES (USE ONLY FOR BRANDING, NOT BACKGROUNDS):")
-                for img in logo_images[:3]:  # Top 3 logos
-                    src = img.get('src', '')
-                    alt = img.get('alt', '')
+                prompt_parts.append(f"- LOGOS/BRAND ({len(logo_images)} items):")
+                for i, logo in enumerate(logo_images[:5], 1):  # Show first 5 logos
+                    src = logo.get('src', '')
+                    alt = logo.get('alt', f'Logo {i}')
                     if src:
-                        prompt_parts.append(f"  🏷️ {src} - {alt}")
+                        prompt_parts.append(f"  {i}. {alt}: {src}")
+                prompt_parts.append("  → Place in navigation/header areas")
+                prompt_parts.append("")
             
-            prompt_parts.append("")
+            if images:
+                prompt_parts.append(f"- CONTENT IMAGES ({len(images)} items):")
+                for i, img in enumerate(images[:30], 1):  # Show up to 30 images
+                    src = img.get('src', '')
+                    alt = img.get('alt', f'Image {i}')
+                    width = img.get('width', '')
+                    height = img.get('height', '')
+                    if src:
+                        size_info = f" ({width}x{height})" if width and height else ""
+                        prompt_parts.append(f"  {i}. {alt}{size_info}: {src}")
+                prompt_parts.append("  → Include ALL with exact dimensions and alt text")
+                prompt_parts.append("")
+            
+            if background_images:
+                # Limit to 8 high-quality images for better LLM compliance
+                bg_subset = background_images[:8]
+                prompt_parts.append(f" BACKGROUND IMAGES IMPLEMENTATION ({len(bg_subset)} required sections):")
+                prompt_parts.append("")
+                
+                for i, bg in enumerate(bg_subset, 1):
+                    bg_img = bg.get('backgroundImage', '')
+                    if bg_img:
+                        prompt_parts.append(f"SECTION {i} TEMPLATE (MANDATORY):")
+                        prompt_parts.append(f"  CSS: .section-{i} {{ background-image: url('{bg_img}'); background-size: cover; background-position: center; }}")
+                        prompt_parts.append(f"  HTML: <section class='section-{i}'><div class='content'><h2>Section {i}</h2><p>Content here</p></div></section>")
+                        prompt_parts.append("")
+                
+                prompt_parts.append(f" CRITICAL: Generate exactly {len(bg_subset)} sections using the templates above!")
+                prompt_parts.append("")
+            
+            # Update critical rules to use subset
+            if background_images:
+                bg_subset = background_images[:8]  # Use same subset as above
+                prompt_parts.extend([
+                    " CRITICAL IMAGE IMPLEMENTATION RULES:",
+                    f"- MUST implement exactly {len(bg_subset)} sections as shown in templates above",
+                    f"- Copy the exact CSS and HTML structures provided for each section",
+                    f"- Each section must use the exact background-image URL specified",
+                    "- NO modifications to the template structure allowed",
+                    "- NO placeholder images - use the provided URLs exactly",
+                    f"- Final result must contain {len(bg_subset)} 'background-image:' declarations",
+                    "- Include navigation and other content around these sections",
+                    ""
+                ])
         
         # Add product cards information
         product_cards = data.get('productCards', [])
@@ -432,124 +357,9 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
                 prompt_parts.append(card_info)
             
             prompt_parts.extend([
-                "",
-                " EXACT HTML TEMPLATES FOR SPECIFIC PRODUCTS:",
-                "",
-                "<!-- iPhone 15 Pro Section -->",
-                "<section class='product-section'>",
-                "  <div class='product-card'>",
-                "    <div class='product-content'>",
-                "      <h2 class='product-title'>iPhone 15 Pro</h2>",
-                "      <p class='product-subtitle'>Titanium. So strong. So light. So Pro.</p>",
-                "      <div class='product-links'>",
-                "        <a href='#'>Learn more ></a>",
-                "        <a href='#'>Buy ></a>",
-                "      </div>",
-                "    </div>",
-                "    <div class='product-image-container'>",
-                "      <img src='https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=800&h=600&fit=crop&auto=format' alt='iPhone 15 Pro' class='product-image' loading='lazy' onerror=\"this.src='https://images.unsplash.com/photo-1611261954895-3040905d4432?w=800&h=600&fit=crop'; this.onerror=null;\" />",
-                "    </div>",
-                "  </div>",
-                "</section>",
-                "",
-                "<!-- MacBook Air 15\" Section -->",
-                "<section class='product-section'>",
-                "  <div class='product-card'>",
-                "    <div class='product-content'>",
-                "      <h2 class='product-title'>MacBook Air 15\"</h2>",
-                "      <p class='product-subtitle'>Impressively big. Impossibly thin.</p>",
-                "      <div class='product-links'>",
-                "        <a href='#'>Learn more ></a>",
-                "        <a href='#'>Buy ></a>",
-                "      </div>",
-                "    </div>",
-                "    <div class='product-image-container'>",
-                "      <img src='https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&h=600&fit=crop&auto=format' alt='MacBook Air 15 inch' class='product-image' loading='lazy' onerror=\"this.src='https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&h=600&fit=crop'; this.onerror=null;\" />",
-                "    </div>",
-                "  </div>",
-                "</section>",
-                "",
-                "<!-- MacBook Pro Section -->",
-                "<section class='product-section'>",
-                "  <div class='product-card'>",
-                "    <div class='product-content'>",
-                "      <h2 class='product-title'>MacBook Pro</h2>",
-                "      <p class='product-subtitle'>Mind-blowing. Head-turning.</p>",
-                "      <div class='product-links'>",
-                "        <a href='#'>Learn more ></a>",
-                "        <a href='#'>Buy ></a>",
-                "      </div>",
-                "    </div>",
-                "    <div class='product-image-container'>",
-                "      <img src='image-url' alt='MacBook Pro' class='product-image' loading='lazy' />",
-                "    </div>",
-                "  </div>",
-                "</section>",
-                "",
-                "<!-- Apple Watch Section (DARK BACKGROUND) -->",
-                "<section class='product-section watch-section dark'>",
-                "  <div class='product-card'>",
-                "    <div class='product-content'>",
-                "      <h1 class='watch-title'>WATCH</h1>",
-                "      <p class='watch-series'>SERIES 9</p>",
-                "      <p class='watch-subtitle'>Smarter. Brighter. Mightier.</p>",
-                "      <div class='product-links'>",
-                "        <a href='#' style='color: #0071e3;'>Learn more ></a>",
-                "        <a href='#' style='color: #0071e3;'>Buy ></a>",
-                "      </div>",
-                "    </div>",
-                "    <div class='product-image-container'>",
-                "      <img src='https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=800&h=600&fit=crop&auto=format' alt='Apple Watch Series 9' class='product-image' loading='lazy' onerror=\"this.src='https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&h=600&fit=crop'; this.onerror=null;\" />",
-                "    </div>",
-                "  </div>",
-                "</section>",
-                "",
-                "<!-- iPad Section -->",
-                "<section class='product-section'>",
-                "  <div class='product-card'>",
-                "    <div class='product-content'>",
-                "      <h2 class='product-title'>iPad</h2>",
-                "      <p class='product-subtitle'>Lovable. Drawable. Magical.</p>",
-                "      <div class='product-links'>",
-                "        <a href='#'>Learn more ></a>",
-                "        <a href='#'>Buy ></a>",
-                "      </div>",
-                "    </div>",
-                "    <div class='product-image-container'>",
-                "      <img src='https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?w=800&h=600&fit=crop&auto=format' alt='iPad' class='product-image' loading='lazy' onerror=\"this.src='https://images.unsplash.com/photo-1561154464-82e9adf32764?w=800&h=600&fit=crop'; this.onerror=null;\" />",
-                "    </div>",
-                "  </div>",
-                "</section>",
-                "",
-                " CRITICAL IMAGE REQUIREMENTS:",
-                "   ALWAYS wrap images in .product-image-container",
-                "   ALWAYS add .product-image class to img tags", 
-                "   ALWAYS include proper alt text",
-                "   ALWAYS add loading='lazy' attribute",
-                "   NEVER use fixed heights - let images scale naturally",
-                "   ALWAYS use object-fit: contain for product images",
-                "",
-                " CRITICAL: NEVER USE LOCAL FILES LIKE 'iphone-15.jpg' ",
-                " FORBIDDEN: url('iphone-15.jpg')  FORBIDDEN: url('apple-watch.jpg')",
-                " REQUIRED: Use ONLY these complete HTTPS URLs ",
-                "",
-                " MANDATORY CSS RULES - COPY EXACTLY:",
-                ".iphone-15-pro { background-image: url('https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=1200&h=800&fit=crop&auto=format'); background-size: cover; background-position: center; color: #f5f5f7; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }",
-                ".apple-watch { background-image: url('https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=1200&h=800&fit=crop&auto=format'); background-size: cover; background-position: center; color: #f5f5f7; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }",
-                ".macbook-pro { background-image: url('https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=1200&h=800&fit=crop&auto=format'); background-size: cover; background-position: center; color: #1d1d1f; }",
-                ".ipad-section { background-image: url('https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?w=1200&h=800&fit=crop&auto=format'); background-size: cover; background-position: center; color: #1d1d1f; }",
-                ".iphone-15 { background-image: url('https://images.unsplash.com/photo-1603791239113-3818cd1ef987?w=1200&h=800&fit=crop&auto=format'); background-size: cover; background-position: center; color: #f5f5f7; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }",
-                "",
-                " EXAMPLE IMPLEMENTATION:",
-                "<section class=\"hero iphone-15-pro\">",
-                "  <h1>iPhone 15 Pro</h1>",
-                "  <p>Titanium. So strong. So light. So Pro.</p>",
-                "</section>",
-                "",
-                "<section class=\"product-tile apple-watch\">",
-                "  <h2>WATCH SERIES 9</h2>",
-                "  <p>Smarter. Brighter. Mightier.</p>",
-                "</section>"
+                "  → Create modern card layouts with hover effects",
+                "  → Include proper spacing, shadows, and clean typography",
+                "  → Make cards responsive with rounded corners",
                 ""
             ])
         
@@ -557,7 +367,7 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
         dividers = data.get('dividers', [])
         if dividers:
             prompt_parts.extend([
-                f"📏 SECTION DIVIDERS ({len(dividers)} found):",
+                f" SECTION DIVIDERS ({len(dividers)} found):",
             ])
             for i, div in enumerate(dividers[:3], 1):  # Show first 3 dividers
                 tag = div.get('tagName', 'hr')
@@ -597,6 +407,22 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
                 "- DO NOT truncate or summarize content",
                 "- Use REAL URLs from scraped data (not placeholder links)",
                 "- Complete the HTML fully"
+            ])
+        
+        # Add final verification for images
+        if background_images:
+            bg_subset = background_images[:8]  # Use same subset
+            prompt_parts.extend([
+                "",
+                " FINAL VERIFICATION CHECKLIST:",
+                f"□ Implemented exactly {len(bg_subset)} sections using the provided templates",
+                f"□ Created exactly {len(bg_subset)} CSS background-image declarations",
+                f"□ Each section has class .section-1 through .section-{len(bg_subset)}",
+                f"□ Used all {len(bg_subset)} exact image URLs provided in templates",
+                "□ Each section contains the required content structure",
+                "□ Navigation and other elements are properly styled",
+                "",
+                " DO NOT SUBMIT until ALL checkboxes above are verified!"
             ])
         
         return "\n".join(prompt_parts)
@@ -738,11 +564,44 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
         
         if header_links or header_structure:
             requirements.append("APPLE-STYLE NAVIGATION REQUIREMENTS:")
-            requirements.append("- CRITICAL: Use Apple's signature navigation design patterns")
-            requirements.append("- Navigation background: Dark (#1d1d1f or #000000) with slight transparency")
+            requirements.append("- CRITICAL: Use Apple's signature navigation design patterns with EXACT alignment")
+            requirements.append("- Navigation background: Dark (#000000) with transparency backdrop-filter: saturate(180%) blur(20px);")
             requirements.append("- Navigation text color: Light gray/white (#f5f5f7, #d2d2d7)")
-            requirements.append("- Navigation height: 44px (Apple standard) with proper padding")
-            requirements.append("- Font: Use Apple system fonts (-apple-system, BlinkMacSystemFont, 'SF Pro Display')")
+            requirements.append("- Navigation height: EXACTLY 44px (Apple standard) with no extra padding")
+            requirements.append("- Font: Use Apple system fonts (-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif)")
+            requirements.append("")
+            requirements.append("CRITICAL NAVIGATION LAYOUT & ALIGNMENT:")
+            requirements.append("- Container: width: 100%, max-width: 980px, margin: 0 auto (centered layout)")
+            requirements.append("- Flexbox layout: display: flex, justify-content: space-between, align-items: center")
+            requirements.append("- Left side: Apple logo (far left with 22px left margin)")
+            requirements.append("- Center: Navigation menu items with equal spacing")
+            requirements.append("- Right side: Search icon and shopping bag icon")
+            requirements.append("- Logo dimensions: height: 20px, width: auto, margin-right: 20px")
+            requirements.append("- Menu items: font-size: 12px, padding: 0 8px, height: 44px, line-height: 44px")
+            requirements.append("- Item spacing: margin: 0 4px between items, no extra padding")
+            requirements.append("- Menu alignment: center menu items evenly between logo and icons")
+            requirements.append("- Icons on right: search and bag icons, 20px padding each side")
+            requirements.append("")
+            requirements.append("NAVIGATION HTML STRUCTURE REQUIREMENTS:")
+            requirements.append("- Use semantic <nav> element with proper ARIA labels")
+            requirements.append("- Logo in <div class='nav-brand'> on the left")
+            requirements.append("- Menu in <ul class='nav-menu'> in the center")
+            requirements.append("- Icons in <div class='nav-icons'> on the right")
+            requirements.append("- HTML Structure Example:")
+            requirements.append("  <nav><div class='nav-container'>")
+            requirements.append("    <div class='nav-brand'><a href='/'><img src='[apple-logo]' alt='Apple' /></a></div>")
+            requirements.append("    <ul class='nav-menu'>")
+            requirements.append("      <li><a href='/store/'>Store</a></li>")
+            requirements.append("      <li><a href='/mac/'>Mac</a></li>")
+            requirements.append("      <!-- all navigation items -->")
+            requirements.append("    </ul>")
+            requirements.append("    <div class='nav-icons'>")
+            requirements.append("      <a href='/search/'><svg>search icon</svg></a>")
+            requirements.append("      <a href='/bag/'><svg>bag icon</svg></a>")
+            requirements.append("    </div>")
+            requirements.append("  </div></nav>")
+            requirements.append("- Ensure proper focus states and keyboard navigation")
+            requirements.append("- Position: fixed, top: 0, z-index: 9999 for sticky behavior")
             requirements.append("")
             
             # Header structure information
@@ -852,57 +711,9 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
         images = data.get('images', [])
         background_images = data.get('backgroundImages', [])
         logo_images = data.get('logoImages', [])
-        svg_logos = data.get('svgLogos', [])
         
-        if images or background_images or logo_images or svg_logos:
+        if images or background_images or logo_images:
             requirements.append("IMAGES AND MEDIA:")
-            
-            # Enhanced Apple SVG logo detection and handling
-            if svg_logos:
-                requirements.append(f"- APPLE SVG LOGO IMPLEMENTATION ({len(svg_logos)} found):")
-                
-                apple_svg_logos = [svg for svg in svg_logos if svg.get('isAppleLogo', False) or svg.get('isInNavigation', False)]
-                if apple_svg_logos:
-                    for svg in apple_svg_logos[:1]:  # Use the first Apple SVG logo found
-                        view_box = svg.get('viewBox', '0 0 14 44')
-                        paths = svg.get('paths', [])
-                        fill_color = svg.get('fill', '#f5f5f7')
-                        width = svg.get('width', '14')
-                        height = svg.get('height', '44')
-                        
-                        requirements.append(f"  • SVG ViewBox: {view_box}")
-                        requirements.append(f"  • SVG Dimensions: {width}x{height}")
-                        requirements.append(f"  • Fill Color: {fill_color}")
-                        requirements.append(f"  • Path Count: {len(paths)}")
-                        if paths:
-                            for i, path in enumerate(paths[:2], 1):  # Show first 2 paths
-                                path_data = path.get('d', '')[:100] + '...' if len(path.get('d', '')) > 100 else path.get('d', '')
-                                requirements.append(f"    Path {i}: {path_data}")
-            
-            requirements.extend([
-                "",
-                "CRITICAL APPLE SVG LOGO IMPLEMENTATION:",
-                "- Use COMPLETE Apple SVG logo with ALL path data - no truncation",
-                "- Set SVG dimensions: width='20' height='20' (scaled down from 14x44)",
-                "- ViewBox MUST be '0 0 14 44' to ensure full logo visibility", 
-                "- Fill color: #f5f5f7 (Apple's nav text color)",
-                "- Position SVG logo on the FAR LEFT of navigation with proper spacing",
-                "- Wrap SVG in clickable link: <a href='/' class='nav-logo'>...svg...</a>",
-                "- Add hover effect: opacity: 0.8 on hover transition",
-                "- Ensure the SVG renders as the full Apple logo, not partial or cut off",
-                "- Test that all path data is complete and not missing parts",
-                "",
-                "ENHANCED NAVIGATION LAYOUT REQUIREMENTS:",
-                "- Navigation container: width: 100%, max-width: 980px, margin: 0 auto",
-                "- Navigation inner content: display: flex, align-items: center, justify-content: space-between",
-                "- Logo container: flex-shrink: 0, margin-right: auto, padding: 0 22px 0 0",
-                "- Navigation links: display: flex, align-items: center, gap: 0",
-                "- Each nav link: padding: 0 10px, height: 44px, display: flex, align-items: center",
-                "- Use CSS Grid or Flexbox for perfect alignment across all screen sizes",
-                "- Ensure navigation bar has proper backdrop-filter and transparency",
-                "- Logo must be fully visible and not clipped at any viewport size",
-                ""
-            ])
             
             # Prioritize logo images first with enhanced Apple logo handling
             if logo_images:
@@ -944,20 +755,7 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
                     "- Logo container: flex-shrink: 0, margin-right: 20px",
                     "- Make logo clickable: wrap in <a href='/'>",
                     "- Add hover effect: opacity: 0.8 on hover",
-                    "- Ensure logo loads correctly and is not broken or showing as text",
-                    "",
-                    "NAVIGATION STRUCTURE TEMPLATE:",
-                    "<nav style='background: rgba(0,0,0,0.8); height: 44px; position: fixed; top: 0; width: 100%; z-index: 9999; backdrop-filter: saturate(180%) blur(20px);'>",
-                    "  <div style='max-width: 980px; margin: 0 auto; display: flex; align-items: center; height: 100%; padding: 0 22px;'>",
-                    "    <a href='/' style='flex-shrink: 0; margin-right: auto; display: flex; align-items: center;'>",
-                    "      <!-- APPLE SVG LOGO HERE with proper dimensions and paths -->",
-                    "    </a>",
-                    "    <div style='display: flex; align-items: center; gap: 0;'>",
-                    "      <!-- Navigation links here with proper spacing -->",
-                    "    </div>",
-                    "  </div>",
-                    "</nav>",
-                    ""
+                    "- Ensure logo loads correctly and is not broken or showing as text"
                 ])
                 requirements.append("")
             
@@ -974,56 +772,14 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
                 requirements.append("")
             
             if background_images:
-                requirements.append(f"- BACKGROUND IMAGES ({len(background_images)} found):") 
-                
-                # Separate high-quality images from logos and low-quality images
-                hero_images = [bg for bg in background_images if bg.get('imageType') == 'hero' and bg.get('isHighQuality', False)]
-                product_images = [bg for bg in background_images if bg.get('imageType') == 'product' and bg.get('isHighQuality', False)]
-                logo_images = [bg for bg in background_images if bg.get('imageType') == 'logo' or bg.get('isLogo', False)]
-                
-                # Sort by quality score (highest first)
-                all_quality_images = sorted(
-                    [bg for bg in background_images if bg.get('isHighQuality', False) and not bg.get('isLogo', False)],
-                    key=lambda x: x.get('qualityScore', 0),
-                    reverse=True
-                )
-                
-                if hero_images:
-                    requirements.append(f"  HERO IMAGES ({len(hero_images)} found) - USE THESE FOR MAIN SECTIONS:")
-                    for hero in hero_images[:3]:  # Show top 3 hero images
-                        element = hero.get('element', 'div')
-                        bg_img = hero.get('backgroundImage', '')
-                        score = hero.get('qualityScore', 0)
-                        requirements.append(f"    • {element} (score: {score}): {bg_img}")
-                    requirements.append("")
-                
-                if product_images:
-                    requirements.append(f"  PRODUCT IMAGES ({len(product_images)} found) - USE FOR PRODUCT TILES:")
-                    for prod in product_images[:3]:  # Show top 3 product images
-                        element = prod.get('element', 'div')
-                        bg_img = prod.get('backgroundImage', '')
-                        score = prod.get('qualityScore', 0)
-                        requirements.append(f"    • {element} (score: {score}): {bg_img}")
-                    requirements.append("")
-                
-                if logo_images:
-                    requirements.append(f"  ⚠️ LOGO IMAGES DETECTED ({len(logo_images)} found) - DO NOT USE AS BACKGROUNDS:")
-                    for logo in logo_images[:2]:  # Show first 2 logos as examples
-                        bg_img = logo.get('backgroundImage', '')
-                        requirements.append(f"    • AVOID: {bg_img}")
-                    requirements.append("")
-                
-                requirements.extend([
-                    "  CRITICAL IMAGE USAGE RULES:",
-                    "  - NEVER use logo images (containing 'logo', 'nav', 'globalnav') as backgrounds for product tiles",
-                    "  - PRIORITIZE hero images (/heroes/, hero_) for main sections", 
-                    "  - USE product images for product tiles, ensuring they're not logos",
-                    "  - PREFER .jpg/.jpeg files for photo backgrounds over .png logos",
-                    "  - If an image has qualityScore < 30, find a better alternative",
-                    "  - Hero sections should use images from /heroes/ folder when available",
-                    "  - Product tiles should use actual product photos, not logo graphics",
-                    ""
-                ])
+                requirements.append(f"- BACKGROUND IMAGES ({len(background_images)} found):")
+                for bg in background_images[:5]:  # Show more background images
+                    element = bg.get('element', 'div')
+                    bg_img = bg.get('backgroundImage', '')
+                    if bg_img:
+                        requirements.append(f"  • {element}: {bg_img}")
+                requirements.append("- Apply as CSS background-image property with proper sizing")
+                requirements.append("")
             
             requirements.extend([
                 "- CRITICAL: Use actual image URLs from scraped data - NO placeholder images",
@@ -1077,22 +833,64 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
             
             requirements.extend([
                 "",
-                "APPLE FONT IMPLEMENTATION REQUIREMENTS:",
-                "- PRIMARY: Use Apple's official font stack:",
+                "FONT IMPLEMENTATION REQUIREMENTS:",
+                "- PRIMARY: Use the detected font stack from original website or fallback to system fonts:",
                 "  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif;",
                 "- Navigation text: 14px, font-weight: 400, letter-spacing: -0.016em",
                 "- Hero text: Large sizes with proper letter-spacing (-0.022em for 17px+)",
                 "- Body text: 17px, font-weight: 400, line-height: 1.47",
                 "",
-                "APPLE TYPOGRAPHY COLOR SYSTEM:",
-                "- Navigation text: #F5F5F7 (light gray on dark nav)",
-                "- Primary text: #1D1D1F (Apple's signature dark gray)",
-                "- Secondary text: #86868B (Apple's medium gray)",
-                "- Hero/large text: #1D1D1F with proper contrast",
-                "- Link colors: #007AFF (Apple blue) for interactive elements",
+                "SCRAPED TYPOGRAPHY COLOR SYSTEM:",
+            ])
+            
+            # Use scraped colors instead of hardcoded values
+            nav_colors = scraped_colors.get('navigation_colors', {})
+            body_colors = scraped_colors.get('body_colors', [])
+            
+            if nav_colors.get('background') or nav_colors.get('text'):
+                requirements.append(f"- Navigation background: {nav_colors.get('background', '#ffffff')}")
+                requirements.append(f"- Navigation text: {nav_colors.get('text', '#000000')}")
+                if nav_colors.get('link_colors'):
+                    link_colors = ', '.join(nav_colors['link_colors'][:3])
+                    requirements.append(f"- Navigation links: {link_colors}")
+            else:
+                # Fallback colors if no navigation colors detected
+                requirements.append("- Navigation text: #F5F5F7 (fallback light gray)")
+                requirements.append("- Navigation background: #1d1d1f (fallback dark)")
+            
+            # Add body text colors by role
+            for color_info in body_colors[:5]:  # Show first 5 color roles
+                role = color_info.get('role', 'content')
+                color = color_info.get('color', '#000000')
+                count = color_info.get('usage_count', 0)
+                requirements.append(f"- {role.title()} text: {color} (used {count} times)")
+            
+            # Add heading colors if available
+            heading_colors = scraped_colors.get('heading_colors', [])
+            if heading_colors:
+                requirements.append("- Heading colors from original:")
+                for heading in heading_colors[:3]:  # Show first 3 heading colors
+                    level = heading.get('level', 1)
+                    color = heading.get('colors', {}).get('textColor', '#000000')
+                    text_sample = heading.get('text', '')[:20]
+                    requirements.append(f"  • H{level}: {color} (e.g., \"{text_sample}\")")
+            
+            requirements.extend([
+                "",
+                "APPLE NAVIGATION CSS REQUIREMENTS:",
+                "- Navigation wrapper: background: rgba(0,0,0,0.8); backdrop-filter: saturate(180%) blur(20px);",
+                "- Navigation container CSS:",
+                "  .nav-container { max-width: 980px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; height: 44px; padding: 0 22px; }",
+                "- Logo CSS: .nav-brand img { height: 20px; width: auto; filter: brightness(0) invert(1); }",
+                "- Menu CSS: .nav-menu { display: flex; list-style: none; margin: 0; padding: 0; gap: 0; }",
+                "- Menu item CSS: .nav-menu li { margin: 0 4px; } .nav-menu a { color: #f5f5f7; text-decoration: none; font-size: 12px; padding: 0 8px; display: block; line-height: 44px; transition: opacity 0.3s; }",
+                "- Hover states: .nav-menu a:hover, .nav-brand:hover { opacity: 0.8; }",
+                "- Icons CSS: .nav-icons { display: flex; gap: 16px; } .nav-icons svg { width: 20px; height: 20px; fill: #f5f5f7; }",
                 "",
                 "CRITICAL TYPOGRAPHY RULES:",
-                "- Apply Apple's exact letter-spacing values consistently",
+                "- Use the EXACT colors scraped from the original website above",
+                "- Maintain proper contrast ratios for accessibility",
+                "- Apply consistent letter-spacing values from original",
                 "- Use proper line-height ratios (1.47 for body, 1.2 for headlines)",
                 "- Ensure text renders crisply with -webkit-font-smoothing: antialiased",
                 "- Match original font weights and sizes exactly from detected typography"
@@ -1102,59 +900,204 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
         # Interactive buttons and CTAs
         buttons = data.get('buttons', [])
         cta_elements = data.get('ctaElements', [])
+        text_content = data.get('textContent', {})
         
-        if buttons or cta_elements:
-            requirements.append("INTERACTIVE ELEMENTS AND BUTTONS:")
+        # Extract actual colors from scraped data
+        scraped_colors = self._extract_color_information(data)
+        
+        if buttons or cta_elements or text_content:
+            requirements.append("INTERACTIVE ELEMENTS & BUTTON DESIGN:")
             
+            # Use actual scraped button text and colors
+            actual_button_texts = []
+            button_color_info = []
+            
+            # Extract button colors from scraped data
+            if text_content.get('buttonColors'):
+                for btn_data in text_content['buttonColors'][:10]:
+                    btn_text = btn_data.get('text', '').strip()
+                    colors = btn_data.get('colors', {})
+                    if btn_text:
+                        actual_button_texts.append(f"  • \"{btn_text}\"")
+                        if colors:
+                            button_color_info.append({
+                                'text': btn_text,
+                                'textColor': colors.get('textColor', '#000000'),
+                                'backgroundColor': colors.get('backgroundColor', 'transparent'),
+                                'borderColor': colors.get('borderColor', 'transparent')
+                            })
+            
+            # Collect button text from scraped data
+            if text_content.get('buttonTexts'):
+                for btn_data in text_content['buttonTexts'][:10]:
+                    btn_text = btn_data.get('text', '').strip()
+                    if btn_text and not any(btn_text in item for item in actual_button_texts):
+                        actual_button_texts.append(f"  • \"{btn_text}\"")
+            
+            # Collect CTA text from scraped elements
             if buttons:
-                requirements.append(f"- BUTTONS ({len(buttons)} found):")
-                for btn in buttons[:8]:  # Show first 8 buttons
-                    text = btn.get('text', '').strip()
-                    tag = btn.get('tagName', 'button')
-                    href = btn.get('href', '')
-                    bg_color = btn.get('style', {}).get('backgroundColor', '')
-                    if text:
-                        button_info = f"  • {text} ({tag})"
-                        if href:
-                            button_info += f" → {href}"
-                        if bg_color and bg_color != 'rgba(0, 0, 0, 0)':
-                            button_info += f" [{bg_color}]"
-                        requirements.append(button_info)
+                for btn in buttons[:10]:
+                    btn_text = btn.get('text', '').strip()
+                    if btn_text and not any(btn_text in item for item in actual_button_texts):
+                        actual_button_texts.append(f"  • \"{btn_text}\"")
             
             if cta_elements:
-                requirements.append(f"- CALL-TO-ACTION LINKS ({len(cta_elements)} found):")
-                for cta in cta_elements[:6]:  # Show first 6 CTAs
-                    text = cta.get('text', '').strip()
-                    href = cta.get('href', '')
-                    if text and href:
-                        requirements.append(f"  • \"{text}\" → {href}")
+                for cta in cta_elements[:10]:
+                    cta_text = cta.get('text', '').strip()
+                    if cta_text and not any(cta_text in item for item in actual_button_texts):
+                        actual_button_texts.append(f"  • \"{cta_text}\"")
             
+            if actual_button_texts:
+                requirements.append("ACTUAL BUTTON TEXT FROM WEBSITE:")
+                requirements.extend(actual_button_texts[:15])  # Limit to 15 buttons
+                requirements.append("")
+                
+                # Add button color information if available
+                if button_color_info:
+                    requirements.append("BUTTON COLOR STYLING FROM ORIGINAL:")
+                    for btn_info in button_color_info[:5]:  # Show first 5 button color styles
+                        text = btn_info.get('text', '')
+                        text_color = btn_info.get('textColor', '#000000')
+                        bg_color = btn_info.get('backgroundColor', 'transparent')
+                        border_color = btn_info.get('borderColor', 'transparent')
+                        
+                        requirements.append(f"- \"{text}\":")
+                        requirements.append(f"  • Text color: {text_color}")
+                        requirements.append(f"  • Background: {bg_color}")
+                        if border_color != 'transparent':
+                            requirements.append(f"  • Border: {border_color}")
+                    requirements.append("")
+            
+            # Use extracted button text for styling requirements
+            primary_btn_text = "Learn more"  # Default fallback
+            secondary_btn_text = "Buy"      # Default fallback
+            primary_btn_colors = None
+            secondary_btn_colors = None
+            
+            # Try to find actual button text and colors from scraped content
+            if actual_button_texts:
+                for btn_line in actual_button_texts:
+                    if '"' in btn_line:
+                        btn_text = btn_line.split('"')[1].lower()
+                        actual_text = btn_line.split('"')[1]
+                        if 'learn' in btn_text or 'more' in btn_text or 'explore' in btn_text:
+                            primary_btn_text = actual_text
+                            # Find matching color info
+                            for btn_info in button_color_info:
+                                if btn_info.get('text', '').lower() == actual_text.lower():
+                                    primary_btn_colors = btn_info
+                                    break
+                        elif 'buy' in btn_text or 'shop' in btn_text or 'order' in btn_text:
+                            secondary_btn_text = actual_text
+                            # Find matching color info
+                            for btn_info in button_color_info:
+                                if btn_info.get('text', '').lower() == actual_text.lower():
+                                    secondary_btn_colors = btn_info
+                                    break
+            
+            # Build button styling requirements using scraped colors when available
             requirements.extend([
                 "",
-                "APPLE-STYLE BUTTON DESIGN REQUIREMENTS:",
-                "- Primary button (Learn more): Blue (#007AFF) with white text",
+                "BUTTON DESIGN REQUIREMENTS (USING ORIGINAL COLORS):",
+            ])
+            
+            if primary_btn_colors:
+                bg_color = primary_btn_colors.get('backgroundColor', '#007AFF')
+                text_color = primary_btn_colors.get('textColor', '#ffffff')
+                requirements.append(f"- Primary button (\"{primary_btn_text}\"): Background {bg_color} with text color {text_color}")
+            else:
+                requirements.append(f"- Primary button (\"{primary_btn_text}\"): Blue (#007AFF) with white text (fallback)")
+            
+            requirements.extend([
                 "- Button dimensions: padding: 12px 22px, border-radius: 8px",
                 "- Typography: font-weight: 400, font-size: 17px, letter-spacing: -0.022em",
-                "- Button font: Use Apple system fonts (-apple-system, BlinkMacSystemFont)",
-                "- Hover effect: Slightly darker blue (#0051D5) with smooth transition",
+                "- Button font: Use system fonts or match original font family",
+                "- Hover effect: Slightly darker shade with smooth transition",
                 "- Shadow: subtle drop shadow (0 2px 4px rgba(0,0,0,0.1))",
                 "- Active state: transform: scale(0.96) for brief press feedback",
-                "- Focus state: outline: 2px solid #007AFF with 2px offset",
                 "- Transition: all properties with 0.2s ease timing",
                 "",
-                "SECONDARY BUTTON STYLING (if present):",
-                "- Secondary buttons: Light background (#F2F2F7) with dark text (#1D1D1F)",
+            ])
+            
+            if secondary_btn_colors:
+                bg_color = secondary_btn_colors.get('backgroundColor', '#F2F2F7')
+                text_color = secondary_btn_colors.get('textColor', '#1D1D1F')
+                requirements.append(f"- Secondary button (\"{secondary_btn_text}\"): Background {bg_color} with text color {text_color}")
+            else:
+                requirements.append(f"- Secondary button (\"{secondary_btn_text}\"): Light background (#F2F2F7) with dark text (#1D1D1F) (fallback)")
+            
+            requirements.extend([
                 "- Same dimensions and transitions as primary buttons",
-                "- Hover: Slightly darker background (#E5E5EA)",
+                "- Hover: Slightly darker background shade",
                 "",
                 "CTA INTERACTION REQUIREMENTS:",
                 "- Make ALL buttons and CTAs fully clickable and interactive",
                 "- Ensure buttons have proper cursor: pointer",
                 "- Include smooth micro-interactions on hover and click",
                 "- Maintain Apple's accessibility standards",
-                "- Include 'Learn more' and 'Buy' buttons exactly as in original design",
+                f"- Use the EXACT button text from the original website: \"{primary_btn_text}\", \"{secondary_btn_text}\", etc.",
                 "- Ensure button text is center-aligned and properly sized"
             ])
+            requirements.append("")
+        
+        # Use scraped product content instead of generic placeholders
+        product_content = text_content.get('productContent', [])
+        hero_content = text_content.get('heroContent', [])
+        section_content = text_content.get('sectionContent', [])
+        
+        if product_content or hero_content or section_content:
+            requirements.append("ACTUAL WEBSITE CONTENT TO INCLUDE:")
+            
+            if hero_content:
+                requirements.append("HERO/BANNER CONTENT:")
+                for hero in hero_content[:3]:  # Show first 3 hero sections
+                    title = hero.get('title', '').strip()
+                    subtitle = hero.get('subtitle', '').strip()
+                    if title:
+                        requirements.append(f"  • Title: \"{title}\"")
+                    if subtitle:
+                        requirements.append(f"  • Subtitle: \"{subtitle}\"")
+                    cta_texts = hero.get('ctaText', [])
+                    if cta_texts:
+                        requirements.append(f"  • CTA buttons: {', '.join([f'\"{text}\"' for text in cta_texts])}")
+                requirements.append("")
+            
+            if product_content:
+                requirements.append("PRODUCT CONTENT:")
+                for product in product_content[:5]:  # Show first 5 products
+                    title = product.get('title', '').strip()
+                    description = product.get('description', '').strip()
+                    price = product.get('price', '').strip()
+                    if title:
+                        requirements.append(f"  • Product: \"{title}\"")
+                    if description and len(description) < 100:
+                        requirements.append(f"    Description: \"{description}\"")
+                    if price:
+                        requirements.append(f"    Price: \"{price}\"")
+                    button_texts = product.get('buttonText', [])
+                    if button_texts:
+                        requirements.append(f"    Buttons: {', '.join([f'\"{text}\"' for text in button_texts])}")
+                requirements.append("")
+            
+            if section_content:
+                requirements.append("SECTION CONTENT:")
+                for section in section_content[:5]:  # Show first 5 sections
+                    heading = section.get('heading', '').strip()
+                    content = section.get('content', '').strip()
+                    if heading:
+                        requirements.append(f"  • Section: \"{heading}\"")
+                    if content and len(content) < 150:
+                        requirements.append(f"    Content: \"{content}\"")
+                requirements.append("")
+        
+        # Use scraped navigation text
+        navigation_text = text_content.get('navigationText', [])
+        if navigation_text:
+            requirements.append("NAVIGATION MENU ITEMS:")
+            for nav_item in navigation_text[:12]:  # Show first 12 nav items
+                nav_text = nav_item.get('text', '').strip()
+                if nav_text:
+                    requirements.append(f"  • \"{nav_text}\"")
             requirements.append("")
         
         # Product cards and layout elements
@@ -1174,7 +1117,7 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
                 requirements.extend([
                     "- Create modern, clean card layouts with hover effects",
                     "- Include product images, titles, and descriptions",
-                    "- Add interactive buttons (Learn more, Buy, etc.) within each card",
+                    "- Use the EXACT button text from the scraped content for each card",
                     "- Use Apple-style spacing, typography, and card shadows",
                     "- Ensure card buttons are properly styled and clickable"
                 ])
@@ -1189,70 +1132,11 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
             
             requirements.append("")
         
-        # Enhanced Apple color scheme detection
-        colors = data.get('colors', {})
+        # Color scheme
+        colors = data.get('colors', [])
         if colors:
-            requirements.append("APPLE COLOR SYSTEM IMPLEMENTATION:")
-            
-            # Extract navigation colors
-            nav_colors = colors.get('navigationColors', {})
-            if nav_colors:
-                nav_bg = nav_colors.get('backgroundColor', '')
-                nav_text = nav_colors.get('textColor', '')
-                if nav_bg:
-                    requirements.append(f"- Detected navigation background: {nav_bg}")
-                if nav_text:
-                    requirements.append(f"- Detected navigation text color: {nav_text}")
-            
-            # Apple-specific color detection
-            apple_colors = colors.get('hasAppleColors', {})
-            if apple_colors:
-                if apple_colors.get('darkNavigation'):
-                    requirements.append("- Dark navigation detected - use Apple's navigation styling")
-                if apple_colors.get('lightText'):
-                    requirements.append("- Light text on navigation detected - maintain Apple's contrast")
-                if apple_colors.get('appleBlue'):
-                    requirements.append("- Apple blue detected - ensure proper implementation")
-            
-            # Color implementation requirements
-            requirements.extend([
-                "",
-                "MANDATORY APPLE COLOR IMPLEMENTATION:",
-                "- Navigation background: rgba(29, 29, 31, 0.8) or #1d1d1f with 0.8 opacity",
-                "- Navigation text: #f5f5f7 (Apple's standard navigation text color)",
-                "- Navigation hover: rgba(245, 245, 247, 0.8) for subtle hover effects",
-                "",
-                "CRITICAL BODY TEXT COLOR REQUIREMENTS:",
-                "- ALL body text, headings, paragraphs: color: #1d1d1f (Apple's dark text)",
-                "- Secondary descriptive text: color: #86868b (Apple's secondary gray)", 
-                "- Product tile text: color: #1d1d1f (NEVER white on light backgrounds)",
-                "- Hero section text: color: #1d1d1f on light backgrounds, #ffffff on dark images",
-                "- Button text: #1d1d1f on light buttons, #ffffff on dark/blue buttons",
-                "",
-                "LINK AND INTERACTIVE COLORS:",
-                "- Interactive links: color: #007aff (Apple's system blue)",
-                "- CTA buttons: background: #007aff, color: #ffffff",
-                "- 'Learn more' links: color: #007aff with hover effects",
-                "",
-                "BACKGROUND COLORS:",
-                "- Page background: #ffffff or #fbfbfd",
-                "- Product tiles: light backgrounds (#ffffff, #f5f5f7)",
-                "- Navigation: rgba(29, 29, 31, 0.8) with backdrop blur",
-                "",
-                "COLOR CONTRAST RULES (CRITICAL):",
-                "- NEVER use white text (#ffffff) on light backgrounds",
-                "- ALWAYS use dark text (#1d1d1f) for body content on light backgrounds",
-                "- Light text (#f5f5f7) ONLY for navigation on dark navigation bar",
-                "- Ensure all text meets WCAG AA contrast requirements",
-                "- Product cards must have dark text for readability",
-                ""
-            ])
-            
-            # Include detected colors for reference
-            text_colors = colors.get('textColors', [])
-            if text_colors:
-                requirements.append(f"- Reference detected colors: {', '.join(text_colors[:8])}")
-            
+            requirements.append("COLOR PALETTE:")
+            requirements.append(f"Primary colors: {', '.join(colors[:6])}")
             requirements.append("")
         
         # Typography from headings
@@ -1309,84 +1193,69 @@ OUTPUT: Complete HTML with inline CSS. No explanations."""
             ""
         ])
         
-        # Add navigation structure information
-        navigation = data.get('navigation', {})
-        header_structure = navigation.get('headerStructure', {})
-        header_links = navigation.get('headerLinks', [])
-        
-        if header_structure or header_links:
-            requirements.append(f"APPLE NAVIGATION SYSTEM ({len(header_links)} links):")
-            
-            requirements.extend([
-                "",
-                "🔥 MANDATORY APPLE NAVIGATION IMPLEMENTATION - FOLLOW EXACTLY:",
-                "",
-                "NAVIGATION CSS (COPY EXACTLY):",
-                "nav { background: rgba(0,0,0,0.8); height: 44px; position: fixed; top: 0; width: 100%; z-index: 9999; backdrop-filter: saturate(180%) blur(20px); }",
-                ".nav-container { max-width: 980px; margin: 0 auto; display: flex; align-items: center; height: 100%; padding: 0 22px; position: relative; }",
-                ".nav-logo { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); }",
-                ".nav-logo svg { width: 16px; height: 44px; fill: #f5f5f7; }",
-                ".nav-center { flex: 1; display: flex; justify-content: center; align-items: center; gap: 35px; margin: 0 40px; }",
-                ".nav-center a { color: #f5f5f7; text-decoration: none; font-size: 12px; font-weight: 400; letter-spacing: -0.01em; padding: 0 8px; transition: opacity 0.3s; }",
-                ".nav-center a:hover { opacity: 0.8; }",
-                "",
-                "NAVIGATION HTML STRUCTURE (IMPLEMENT EXACTLY):",
-                "<nav>",
-                "  <div class='nav-container'>",
-                "    <div class='nav-logo'>",
-                "      <svg width='16' height='44' viewBox='0 0 16 44' fill='#f5f5f7'><path d='M8.074 31.612c-1.155 0-1.976-.711-3.646-.711-1.776 0-2.3.679-3.544.711-2.489.086-4.688-2.789-6.306-5.611-3.223-5.611 0.844-14.1 5.559-13.8 2.144.134 3.344 1.289 5.026 1.289 1.681 0 2.67-1.289 5.113-1.289 1.833 0 3.404.956 4.606 2.589-4.034 2.211-3.378 7.977.889 9.944-.755 1.944-1.722 3.889-3.111 5.6-1.256 1.544-2.644 2.278-4.586 2.278zm-1.355-19.956c-.089-2.266 1.689-4.111 3.778-4.244 0.267 2.4-1.6 4.244-3.778 4.244z'/></svg>",
-                "    </div>",
-                "    <div class='nav-center'>",
-                "      <a href='#'>Store</a>",
-                "      <a href='#'>Mac</a>",
-                "      <a href='#'>iPad</a>",
-                "      <a href='#'>iPhone</a>",
-                "      <a href='#'>Watch</a>",
-                "      <a href='#'>Vision</a>",
-                "      <a href='#'>AirPods</a>",
-                "      <a href='#'>TV & Home</a>",
-                "      <a href='#'>Entertainment</a>",
-                "      <a href='#'>Accessories</a>",
-                "      <a href='#'>Support</a>",
-                "    </div>",
-                "  </div>",
-                "</nav>",
-                "",
-                "CARD/SECTION STYLING REQUIREMENTS:",
-                "- Add subtle borders between product sections: border-bottom: 1px solid #d2d2d7",
-                "- Use proper spacing: margin-bottom: 11px between sections",
-                "- Ensure images are properly loaded with fallback handling",
-                "- Add proper hover effects: transform: scale(1.02) on product cards",
-                "",
-                "IMAGE HANDLING REQUIREMENTS:",
-                "- Always include width and height attributes for images",
-                "- Use proper loading='lazy' for performance",
-                "- Include alt text for all images",
-                "- Add proper error handling: onerror=\"this.style.display='none'\"",
-                "",
-            ])
-            
-            if header_links:
-                requirements.append("- Navigation Links:")
-                for link in header_links[:12]:  # Show first 12 nav links
-                    text = link.get('text', '').strip()
-                    href = link.get('href', '#')
-                    className = link.get('className', '')
-                    if text and text not in ['', 'Apple']:
-                        requirements.append(f"  • {text} → {href}")
-        else:
-            requirements.extend([
-                "NAVIGATION STRUCTURE (Apple-style):",
-                "- Create dark translucent navigation bar (background: rgba(0,0,0,0.8))",
-                "- Position logo on far left, navigation links spread across remaining space",
-                "- Use flexbox for perfect alignment and responsive behavior",
-                "- Include Apple logo SVG with proper dimensions and white fill",
-                "- Navigation height: 44px (Apple standard)",
-                "- Add backdrop-filter: saturate(180%) blur(20px) for glass effect",
-                ""
-            ])
-        
         return requirements
+
+    def _extract_color_information(self, data: Dict) -> Dict:
+        """Extract comprehensive color information from scraped data"""
+        text_content = data.get('textContent', {})
+        colors_info = {
+            'navigation_colors': {},
+            'button_colors': [],
+            'heading_colors': [],
+            'body_colors': [],
+            'background_colors': [],
+            'color_palette': []
+        }
+        
+        # Extract navigation colors
+        if text_content.get('navigationColors'):
+            nav_colors = text_content['navigationColors'][0] if text_content['navigationColors'] else {}
+            colors_info['navigation_colors'] = {
+                'background': nav_colors.get('backgroundColor', '#ffffff'),
+                'text': nav_colors.get('textColor', '#000000'),
+                'link_colors': [link.get('color', '#000000') for link in nav_colors.get('linkColors', [])]
+            }
+        
+        # Extract button colors
+        if text_content.get('buttonColors'):
+            colors_info['button_colors'] = text_content['buttonColors']
+        
+        # Extract heading colors
+        if text_content.get('headingColors'):
+            colors_info['heading_colors'] = text_content['headingColors']
+        
+        # Extract general text colors
+        if text_content.get('allText'):
+            text_elements = text_content['allText']
+            # Group by text role
+            role_colors = {}
+            for elem in text_elements[:50]:  # Process first 50 text elements
+                if elem.get('styles') and elem['styles'].get('color'):
+                    role = elem['styles'].get('textRole', 'content')
+                    color = elem['styles']['color']
+                    if role not in role_colors:
+                        role_colors[role] = []
+                    role_colors[role].append(color)
+            
+            # Get most common color for each role
+            for role, colors in role_colors.items():
+                if colors:
+                    # Find most common color
+                    color_counts = {}
+                    for color in colors:
+                        color_counts[color] = color_counts.get(color, 0) + 1
+                    most_common = max(color_counts.items(), key=lambda x: x[1])[0]
+                    colors_info['body_colors'].append({
+                        'role': role,
+                        'color': most_common,
+                        'usage_count': color_counts[most_common]
+                    })
+        
+        # Extract color palette
+        if text_content.get('colorPalette'):
+            colors_info['color_palette'] = text_content['colorPalette']
+        
+        return colors_info
 
     def _clean_html_output(self, html_content: str) -> str:
         """Clean and validate HTML output with enhanced formatting and aggressive note removal"""

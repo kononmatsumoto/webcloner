@@ -305,14 +305,164 @@ class WebsiteScraper:
                     title = soup.find('title')
                     title_text = title.get_text().strip() if title else "Unknown Title"
                     
-                    # Extract basic page data
-                    page_data = self._extract_basic_html_data(soup, url)
+                    # Extract all text content for comprehensive coverage
+                    text_content = {
+                        'allText': [],
+                        'buttonTexts': [],
+                        'navigationText': [],
+                        'productContent': [],
+                        'heroContent': [],
+                        'sectionContent': [],
+                        'footerContent': []
+                    }
+                    
+                    # Extract button and CTA text
+                    for button in soup.find_all(['button', 'input']):
+                        btn_text = ''
+                        if button.name == 'input' and button.get('type') in ['button', 'submit']:
+                            btn_text = button.get('value', '').strip()
+                        else:
+                            btn_text = button.get_text().strip()
+                        
+                        if btn_text:
+                            text_content['buttonTexts'].append({
+                                'text': btn_text,
+                                'type': button.name,
+                                'className': button.get('class', [''])[0] if button.get('class') else ''
+                            })
+                    
+                    # Extract CTA links
+                    for a in soup.find_all('a'):
+                        link_text = a.get_text().strip().lower()
+                        if any(keyword in link_text for keyword in ['learn more', 'buy', 'shop', 'get started', 'try', 'download', 'explore', 'discover', 'view', 'watch', 'order']):
+                            text_content['buttonTexts'].append({
+                                'text': a.get_text().strip(),
+                                'type': 'a',
+                                'className': a.get('class', [''])[0] if a.get('class') else '',
+                                'href': a.get('href', '')
+                            })
+                    
+                    # Extract navigation text
+                    nav_elements = soup.find_all(['nav', 'header']) + soup.find_all(class_=['nav', 'navbar', 'navigation', 'menu'])
+                    for nav in nav_elements:
+                        for a in nav.find_all('a'):
+                            nav_text = a.get_text().strip()
+                            if nav_text:
+                                text_content['navigationText'].append({
+                                    'text': nav_text,
+                                    'href': a.get('href', ''),
+                                    'className': a.get('class', [''])[0] if a.get('class') else ''
+                                })
+                    
+                    # Extract product content
+                    product_selectors = soup.find_all(class_=lambda x: x and any(term in x.lower() for term in ['product', 'item', 'card']))
+                    for product in product_selectors:
+                        title_elem = product.find(['h1', 'h2', 'h3']) or product.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'name']))
+                        desc_elem = product.find('p') or product.find(class_=lambda x: x and any(term in x.lower() for term in ['description', 'desc', 'summary']))
+                        price_elem = product.find(class_=lambda x: x and any(term in x.lower() for term in ['price', 'cost']))
+                        
+                        if title_elem or desc_elem:
+                            product_data = {
+                                'title': title_elem.get_text().strip() if title_elem else '',
+                                'description': desc_elem.get_text().strip() if desc_elem else '',
+                                'price': price_elem.get_text().strip() if price_elem else '',
+                                'buttonText': [btn.get_text().strip() for btn in product.find_all(['button', 'a']) if btn.get_text().strip()],
+                                'className': product.get('class', [''])[0] if product.get('class') else ''
+                            }
+                            if product_data['title'] or product_data['description']:
+                                text_content['productContent'].append(product_data)
+                    
+                    # Extract hero/banner content
+                    hero_selectors = soup.find_all(class_=lambda x: x and any(term in x.lower() for term in ['hero', 'banner', 'jumbotron']))
+                    for hero in hero_selectors:
+                        title_elem = hero.find(['h1', 'h2']) or hero.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'headline']))
+                        subtitle_elem = hero.find(['h3', 'h4', 'p']) or hero.find(class_=lambda x: x and any(term in x.lower() for term in ['subtitle', 'subheading']))
+                        
+                        if title_elem or subtitle_elem:
+                            hero_data = {
+                                'title': title_elem.get_text().strip() if title_elem else '',
+                                'subtitle': subtitle_elem.get_text().strip() if subtitle_elem else '',
+                                'ctaText': [btn.get_text().strip() for btn in hero.find_all(['button', 'a']) if btn.get_text().strip()],
+                                'className': hero.get('class', [''])[0] if hero.get('class') else ''
+                            }
+                            if hero_data['title'] or hero_data['subtitle']:
+                                text_content['heroContent'].append(hero_data)
+                    
+                    # Extract section content
+                    sections = soup.find_all(['section', 'article']) + soup.find_all(class_=lambda x: x and 'section' in x.lower())
+                    for section in sections:
+                        heading_elem = section.find(['h1', 'h2', 'h3']) or section.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'heading']))
+                        content_elem = section.find('p') or section.find(class_=lambda x: x and any(term in x.lower() for term in ['description', 'text', 'content']))
+                        
+                        if heading_elem or content_elem:
+                            section_data = {
+                                'heading': heading_elem.get_text().strip() if heading_elem else '',
+                                'content': content_elem.get_text().strip()[:200] if content_elem else '',
+                                'className': section.get('class', [''])[0] if section.get('class') else ''
+                            }
+                            if section_data['heading'] or section_data['content']:
+                                text_content['sectionContent'].append(section_data)
+                    
+                    # Extract footer content
+                    footer_elements = soup.find_all('footer') + soup.find_all(class_=['footer'])
+                    for footer in footer_elements:
+                        footer_data = {
+                            'links': [a.get_text().strip() for a in footer.find_all('a') if a.get_text().strip()],
+                            'text': [el.get_text().strip() for el in footer.find_all(['p', 'span', 'div']) if el.get_text().strip() and len(el.get_text().strip()) < 100],
+                            'className': footer.get('class', [''])[0] if footer.get('class') else ''
+                        }
+                        if footer_data['links'] or footer_data['text']:
+                            text_content['footerContent'].append(footer_data)
+                    
+                    # Extract all visible text elements
+                    for tag in ['p', 'span', 'div', 'li', 'a']:
+                        for elem in soup.find_all(tag):
+                            elem_text = elem.get_text().strip()
+                            if elem_text and len(elem_text) < 500 and len(elem_text) > 0:
+                                text_content['allText'].append({
+                                    'tagName': tag,
+                                    'text': elem_text,
+                                    'className': elem.get('class', [''])[0] if elem.get('class') else '',
+                                    'id': elem.get('id', '')
+                                })
+
+                    # Basic article extraction for Hacker News
+                    articles = []
+                    for tr in soup.find_all('tr', class_='athing'):
+                        title_link = tr.find('a', class_='storylink') or tr.find('a', class_='titleline')
+                        if title_link:
+                            href = title_link.get('href', '')
+                            if href.startswith('/'):
+                                href = urljoin(url, href)
+                            
+                            articles.append({
+                                'index': len(articles) + 1,
+                                'title': title_link.get_text().strip(),
+                                'href': href,
+                                'score': '',
+                                'author': '',
+                                'time': '',
+                                'comments': '',
+                                'className': tr.get('class', [''])[0] if tr.get('class') else '',
+                                'id': tr.get('id', '')
+                            })
                     
                     return {
                         "url": url,
                         "title": title_text,
                         "screenshot": "",  # No screenshot available
-                        "data": page_data,
+                        "data": {
+                            'html': str(soup),
+                            'headings': headings,
+                            'links': [],
+                            'articles': articles,
+                            'genericArticles': [],
+                            'navigation': {'headerLinks': [], 'sidebarLinks': [], 'mainContentLinks': []},
+                            'layout': {'hasTopNav': False, 'hasSidebar': False, 'isResponsive': False},
+                            'colors': [],
+                            'viewport': {'width': 1920, 'height': 1080},
+                            'textContent': text_content
+                        },
                         "method": "http_fallback"
                     }
         
@@ -345,6 +495,127 @@ class WebsiteScraper:
                         'className': h.get('class', [''])[0] if h.get('class') else ''
                     })
             
+            # Extract all text content for comprehensive coverage
+            text_content = {
+                'allText': [],
+                'buttonTexts': [],
+                'navigationText': [],
+                'productContent': [],
+                'heroContent': [],
+                'sectionContent': [],
+                'footerContent': []
+            }
+            
+            # Extract button and CTA text
+            for button in soup.find_all(['button', 'input']):
+                btn_text = ''
+                if button.name == 'input' and button.get('type') in ['button', 'submit']:
+                    btn_text = button.get('value', '').strip()
+                else:
+                    btn_text = button.get_text().strip()
+                
+                if btn_text:
+                    text_content['buttonTexts'].append({
+                        'text': btn_text,
+                        'type': button.name,
+                        'className': button.get('class', [''])[0] if button.get('class') else ''
+                    })
+            
+            # Extract CTA links
+            for a in soup.find_all('a'):
+                link_text = a.get_text().strip().lower()
+                if any(keyword in link_text for keyword in ['learn more', 'buy', 'shop', 'get started', 'try', 'download', 'explore', 'discover', 'view', 'watch', 'order']):
+                    text_content['buttonTexts'].append({
+                        'text': a.get_text().strip(),
+                        'type': 'a',
+                        'className': a.get('class', [''])[0] if a.get('class') else '',
+                        'href': a.get('href', '')
+                    })
+            
+            # Extract navigation text
+            nav_elements = soup.find_all(['nav', 'header']) + soup.find_all(class_=['nav', 'navbar', 'navigation', 'menu'])
+            for nav in nav_elements:
+                for a in nav.find_all('a'):
+                    nav_text = a.get_text().strip()
+                    if nav_text:
+                        text_content['navigationText'].append({
+                            'text': nav_text,
+                            'href': a.get('href', ''),
+                            'className': a.get('class', [''])[0] if a.get('class') else ''
+                        })
+            
+            # Extract product content
+            product_selectors = soup.find_all(class_=lambda x: x and any(term in x.lower() for term in ['product', 'item', 'card']))
+            for product in product_selectors:
+                title_elem = product.find(['h1', 'h2', 'h3']) or product.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'name']))
+                desc_elem = product.find('p') or product.find(class_=lambda x: x and any(term in x.lower() for term in ['description', 'desc', 'summary']))
+                price_elem = product.find(class_=lambda x: x and any(term in x.lower() for term in ['price', 'cost']))
+                
+                if title_elem or desc_elem:
+                    product_data = {
+                        'title': title_elem.get_text().strip() if title_elem else '',
+                        'description': desc_elem.get_text().strip() if desc_elem else '',
+                        'price': price_elem.get_text().strip() if price_elem else '',
+                        'buttonText': [btn.get_text().strip() for btn in product.find_all(['button', 'a']) if btn.get_text().strip()],
+                        'className': product.get('class', [''])[0] if product.get('class') else ''
+                    }
+                    if product_data['title'] or product_data['description']:
+                        text_content['productContent'].append(product_data)
+            
+            # Extract hero/banner content
+            hero_selectors = soup.find_all(class_=lambda x: x and any(term in x.lower() for term in ['hero', 'banner', 'jumbotron']))
+            for hero in hero_selectors:
+                title_elem = hero.find(['h1', 'h2']) or hero.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'headline']))
+                subtitle_elem = hero.find(['h3', 'h4', 'p']) or hero.find(class_=lambda x: x and any(term in x.lower() for term in ['subtitle', 'subheading']))
+                
+                if title_elem or subtitle_elem:
+                    hero_data = {
+                        'title': title_elem.get_text().strip() if title_elem else '',
+                        'subtitle': subtitle_elem.get_text().strip() if subtitle_elem else '',
+                        'ctaText': [btn.get_text().strip() for btn in hero.find_all(['button', 'a']) if btn.get_text().strip()],
+                        'className': hero.get('class', [''])[0] if hero.get('class') else ''
+                    }
+                    if hero_data['title'] or hero_data['subtitle']:
+                        text_content['heroContent'].append(hero_data)
+            
+            # Extract section content
+            sections = soup.find_all(['section', 'article']) + soup.find_all(class_=lambda x: x and 'section' in x.lower())
+            for section in sections:
+                heading_elem = section.find(['h1', 'h2', 'h3']) or section.find(class_=lambda x: x and any(term in x.lower() for term in ['title', 'heading']))
+                content_elem = section.find('p') or section.find(class_=lambda x: x and any(term in x.lower() for term in ['description', 'text', 'content']))
+                
+                if heading_elem or content_elem:
+                    section_data = {
+                        'heading': heading_elem.get_text().strip() if heading_elem else '',
+                        'content': content_elem.get_text().strip()[:200] if content_elem else '',
+                        'className': section.get('class', [''])[0] if section.get('class') else ''
+                    }
+                    if section_data['heading'] or section_data['content']:
+                        text_content['sectionContent'].append(section_data)
+            
+            # Extract footer content
+            footer_elements = soup.find_all('footer') + soup.find_all(class_=['footer'])
+            for footer in footer_elements:
+                footer_data = {
+                    'links': [a.get_text().strip() for a in footer.find_all('a') if a.get_text().strip()],
+                    'text': [el.get_text().strip() for el in footer.find_all(['p', 'span', 'div']) if el.get_text().strip() and len(el.get_text().strip()) < 100],
+                    'className': footer.get('class', [''])[0] if footer.get('class') else ''
+                }
+                if footer_data['links'] or footer_data['text']:
+                    text_content['footerContent'].append(footer_data)
+            
+            # Extract all visible text elements
+            for tag in ['p', 'span', 'div', 'li', 'a']:
+                for elem in soup.find_all(tag):
+                    elem_text = elem.get_text().strip()
+                    if elem_text and len(elem_text) < 500 and len(elem_text) > 0:
+                        text_content['allText'].append({
+                            'tagName': tag,
+                            'text': elem_text,
+                            'className': elem.get('class', [''])[0] if elem.get('class') else '',
+                            'id': elem.get('id', '')
+                        })
+
             # Basic article extraction for Hacker News
             articles = []
             for tr in soup.find_all('tr', class_='athing'):
@@ -366,6 +637,55 @@ class WebsiteScraper:
                         'id': tr.get('id', '')
                     })
             
+            # Extract comprehensive text content for fallback method
+            text_content = {
+                'buttonTexts': [],
+                'navigationText': [],
+                'productContent': [],
+                'heroContent': [],
+                'sectionContent': [],
+                'footerContent': [],
+                'allText': []
+            }
+            
+            # Extract button and CTA text
+            for button in soup.find_all(['button', 'input']):
+                btn_text = ''
+                if button.name == 'input' and button.get('type') in ['button', 'submit']:
+                    btn_text = button.get('value', '').strip()
+                else:
+                    btn_text = button.get_text().strip()
+                
+                if btn_text:
+                    text_content['buttonTexts'].append({
+                        'text': btn_text,
+                        'type': button.name,
+                        'className': button.get('class', [''])[0] if button.get('class') else ''
+                    })
+            
+            # Extract CTA links that look like buttons
+            for a in soup.find_all('a'):
+                link_text = a.get_text().strip().lower()
+                if any(keyword in link_text for keyword in ['learn more', 'buy', 'shop', 'get started', 'try', 'download', 'explore', 'discover', 'view', 'watch', 'order']):
+                    text_content['buttonTexts'].append({
+                        'text': a.get_text().strip(),
+                        'type': 'a',
+                        'className': a.get('class', [''])[0] if a.get('class') else '',
+                        'href': a.get('href', '')
+                    })
+            
+            # Extract navigation text
+            nav_elements = soup.find_all(['nav', 'header']) + soup.find_all(class_=['nav', 'navbar', 'navigation', 'menu'])
+            for nav in nav_elements:
+                for a in nav.find_all('a'):
+                    nav_text = a.get_text().strip()
+                    if nav_text:
+                        text_content['navigationText'].append({
+                            'text': nav_text,
+                            'href': a.get('href', ''),
+                            'className': a.get('class', [''])[0] if a.get('class') else ''
+                        })
+            
             return {
                 'html': str(soup),
                 'headings': headings,
@@ -375,7 +695,8 @@ class WebsiteScraper:
                 'navigation': {'headerLinks': [], 'sidebarLinks': [], 'mainContentLinks': []},
                 'layout': {'hasTopNav': False, 'hasSidebar': False, 'isResponsive': False},
                 'colors': [],
-                'viewport': {'width': 1920, 'height': 1080}
+                'viewport': {'width': 1920, 'height': 1080},
+                'textContent': text_content
             }
         
         except Exception as e:
@@ -549,6 +870,199 @@ class WebsiteScraper:
                             }
                         })),
                         
+                        // COMPREHENSIVE TEXT CONTENT EXTRACTION
+                        textContent: {
+                            // Extract all visible text elements with complete color information
+                            allText: Array.from(document.querySelectorAll('p, span, div, li, h1, h2, h3, h4, h5, h6, a, button, .text, .content, .description, .title, .subtitle, .caption, .label, .price, .product-name, .product-title')).map(el => {
+                                const computedStyle = window.getComputedStyle(el);
+                                return {
+                                    tagName: el.tagName.toLowerCase(),
+                                    text: el.textContent?.trim() || '',
+                                    className: el.className || '',
+                                    id: el.id || '',
+                                    context: el.closest('.product, .card, .hero, .banner, section, article, .content, nav, header, footer')?.className || '',
+                                    // Complete font and color information
+                                    styles: {
+                                        fontFamily: computedStyle.fontFamily,
+                                        fontSize: computedStyle.fontSize,
+                                        fontWeight: computedStyle.fontWeight,
+                                        letterSpacing: computedStyle.letterSpacing,
+                                        lineHeight: computedStyle.lineHeight,
+                                        textAlign: computedStyle.textAlign,
+                                        textDecoration: computedStyle.textDecoration,
+                                        // Color information
+                                        color: computedStyle.color,
+                                        backgroundColor: computedStyle.backgroundColor,
+                                        // Parent background for context
+                                        parentBackgroundColor: el.parentElement ? window.getComputedStyle(el.parentElement).backgroundColor : 'transparent',
+                                        // Contrast context
+                                        isOnDarkBackground: (() => {
+                                            const bgColor = computedStyle.backgroundColor;
+                                            const parentBg = el.parentElement ? window.getComputedStyle(el.parentElement).backgroundColor : 'transparent';
+                                            const isColorDark = (color) => {
+                                                if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return false;
+                                                const rgb = color.match(/\\d+/g);
+                                                if (!rgb) return false;
+                                                const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+                                                return brightness < 128;
+                                            };
+                                            return isColorDark(bgColor) || isColorDark(parentBg);
+                                        })(),
+                                        // Text role classification
+                                        textRole: (() => {
+                                            if (el.closest('nav, header, .navbar')) return 'navigation';
+                                            if (el.closest('button, .btn')) return 'button';
+                                            if (el.tagName.match(/H[1-6]/)) return 'heading';
+                                            if (el.closest('.price, [class*="price"]')) return 'price';
+                                            if (el.closest('.product, [class*="product"]')) return 'product';
+                                            if (el.closest('footer')) return 'footer';
+                                            return 'content';
+                                        })(),
+                                        // Semantic context
+                                        semanticContext: (() => {
+                                            const contexts = [];
+                                            if (el.closest('.hero, .banner')) contexts.push('hero');
+                                            if (el.closest('.product, .item')) contexts.push('product');
+                                            if (el.closest('.cta, .call-to-action')) contexts.push('cta');
+                                            if (el.closest('nav, header')) contexts.push('navigation');
+                                            if (el.closest('footer')) contexts.push('footer');
+                                            return contexts.join(',') || 'general';
+                                        })()
+                                    },
+                                    position: el.getBoundingClientRect(),
+                                    isVisible: computedStyle.display !== 'none' && computedStyle.visibility !== 'hidden' && computedStyle.opacity !== '0'
+                                };
+                            }).filter(item => item.text && item.text.length > 0 && item.text.length < 500 && item.isVisible),
+                            
+                            // Extract comprehensive color palette from the website
+                            colorPalette: (() => {
+                                const colors = new Set();
+                                const elements = document.querySelectorAll('*');
+                                elements.forEach(el => {
+                                    const style = window.getComputedStyle(el);
+                                    if (style.color && style.color !== 'rgba(0, 0, 0, 0)') colors.add(style.color);
+                                    if (style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)') colors.add(style.backgroundColor);
+                                    if (style.borderColor && style.borderColor !== 'rgba(0, 0, 0, 0)') colors.add(style.borderColor);
+                                });
+                                return Array.from(colors).slice(0, 50); // Limit to top 50 colors
+                            })(),
+                            
+                            // Navigation-specific color extraction
+                            navigationColors: Array.from(document.querySelectorAll('nav, header, .navbar, .navigation, .menu')).map(nav => {
+                                const computedStyle = window.getComputedStyle(nav);
+                                return {
+                                    element: nav.tagName.toLowerCase(),
+                                    className: nav.className || '',
+                                    backgroundColor: computedStyle.backgroundColor,
+                                    textColor: computedStyle.color,
+                                    linkColors: Array.from(nav.querySelectorAll('a')).map(link => ({
+                                        text: link.textContent?.trim() || '',
+                                        color: window.getComputedStyle(link).color,
+                                        hoverColor: link.getAttribute('data-hover-color') || 'inherit',
+                                        className: link.className || ''
+                                    })),
+                                    borderColor: computedStyle.borderColor,
+                                    boxShadow: computedStyle.boxShadow
+                                };
+                            }),
+                            
+                            // Button-specific color extraction
+                            buttonColors: Array.from(document.querySelectorAll('button, .btn, .button, input[type="button"], input[type="submit"], a[class*="btn"]')).map(btn => {
+                                const computedStyle = window.getComputedStyle(btn);
+                                return {
+                                    text: btn.textContent?.trim() || btn.value || '',
+                                    type: btn.tagName.toLowerCase(),
+                                    className: btn.className || '',
+                                    colors: {
+                                        textColor: computedStyle.color,
+                                        backgroundColor: computedStyle.backgroundColor,
+                                        borderColor: computedStyle.borderColor,
+                                        hoverTextColor: btn.getAttribute('data-hover-text-color') || computedStyle.color,
+                                        hoverBackgroundColor: btn.getAttribute('data-hover-bg-color') || computedStyle.backgroundColor
+                                    },
+                                    styles: {
+                                        padding: computedStyle.padding,
+                                        borderRadius: computedStyle.borderRadius,
+                                        fontSize: computedStyle.fontSize,
+                                        fontWeight: computedStyle.fontWeight
+                                    },
+                                    context: btn.closest('.product, .card, .hero, .banner, section, article, nav, header, footer')?.className || ''
+                                };
+                            }).filter(item => item.text),
+                            
+                            // Heading-specific color extraction
+                            headingColors: Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(heading => {
+                                const computedStyle = window.getComputedStyle(heading);
+                                return {
+                                    level: parseInt(heading.tagName.substring(1)),
+                                    text: heading.textContent?.trim() || '',
+                                    className: heading.className || '',
+                                    colors: {
+                                        textColor: computedStyle.color,
+                                        backgroundColor: computedStyle.backgroundColor
+                                    },
+                                    styles: {
+                                        fontSize: computedStyle.fontSize,
+                                        fontWeight: computedStyle.fontWeight,
+                                        lineHeight: computedStyle.lineHeight,
+                                        marginTop: computedStyle.marginTop,
+                                        marginBottom: computedStyle.marginBottom
+                                    },
+                                    context: heading.closest('.product, .card, .hero, .banner, section, article')?.className || ''
+                                };
+                            }).filter(item => item.text),
+                            
+                            // Product names and descriptions
+                            productContent: Array.from(document.querySelectorAll('.product, .item, [class*="product"], [class*="item"]')).map(product => ({
+                                title: product.querySelector('h1, h2, h3, .title, .name, .product-name, .product-title')?.textContent?.trim() || '',
+                                description: product.querySelector('p, .description, .desc, .summary, .details')?.textContent?.trim() || '',
+                                price: product.querySelector('.price, .cost, [class*="price"], [class*="cost"]')?.textContent?.trim() || '',
+                                buttonText: Array.from(product.querySelectorAll('button, .btn, .button, a[class*="btn"]')).map(btn => btn.textContent?.trim()).filter(text => text),
+                                className: product.className || '',
+                                id: product.id || ''
+                            })).filter(item => item.title || item.description),
+                            
+                            // Navigation and menu text
+                            navigationText: Array.from(document.querySelectorAll('nav a, header a, .menu a, .navbar a, .navigation a')).map(link => ({
+                                text: link.textContent?.trim() || '',
+                                href: link.href || '',
+                                className: link.className || '',
+                                parentContext: link.closest('nav, header, .menu, .navbar')?.className || ''
+                            })).filter(item => item.text),
+                            
+                            // Hero/banner text content
+                            heroContent: Array.from(document.querySelectorAll('.hero, .banner, .jumbotron, [class*="hero"], [class*="banner"]')).map(hero => ({
+                                title: hero.querySelector('h1, h2, .title, .headline')?.textContent?.trim() || '',
+                                subtitle: hero.querySelector('h3, h4, .subtitle, .subheading, p')?.textContent?.trim() || '',
+                                ctaText: Array.from(hero.querySelectorAll('button, .btn, .cta, a[class*="btn"]')).map(btn => btn.textContent?.trim()).filter(text => text),
+                                className: hero.className || ''
+                            })).filter(item => item.title || item.subtitle),
+                            
+                            // All button and CTA text
+                            buttonTexts: Array.from(document.querySelectorAll('button, .btn, .button, .cta, input[type="button"], input[type="submit"], a[class*="btn"], a[class*="button"]')).map(btn => ({
+                                text: btn.textContent?.trim() || btn.value || btn.alt || '',
+                                type: btn.tagName.toLowerCase(),
+                                className: btn.className || '',
+                                href: btn.href || '',
+                                context: btn.closest('.product, .card, .hero, section, article')?.className || ''
+                            })).filter(item => item.text),
+                            
+                            // Section headings and content
+                            sectionContent: Array.from(document.querySelectorAll('section, article, .section, .content-section')).map(section => ({
+                                heading: section.querySelector('h1, h2, h3, .title, .heading')?.textContent?.trim() || '',
+                                content: section.querySelector('p, .description, .text, .content')?.textContent?.trim().substring(0, 200) || '',
+                                className: section.className || '',
+                                id: section.id || ''
+                            })).filter(item => item.heading || item.content),
+                            
+                            // Footer text
+                            footerContent: Array.from(document.querySelectorAll('footer, .footer')).map(footer => ({
+                                links: Array.from(footer.querySelectorAll('a')).map(link => link.textContent?.trim()).filter(text => text),
+                                text: Array.from(footer.querySelectorAll('p, span, div')).map(el => el.textContent?.trim()).filter(text => text && text.length < 100),
+                                className: footer.className || ''
+                            })).filter(item => item.links.length > 0 || item.text.length > 0)
+                        },
+                        
                         // Extract images with their attributes
                         images: Array.from(document.querySelectorAll('img')).map(img => ({
                             src: img.src.startsWith('http') ? img.src : new URL(img.src, window.location.href).href,
@@ -564,52 +1078,27 @@ class WebsiteScraper:
                             style: img.style.cssText || ''
                         })).filter(img => img.src && !img.src.startsWith('data:')),
                         
-                        // Extract background images from CSS with enhanced quality detection
+                        // Extract background images from CSS
                         backgroundImages: Array.from(document.querySelectorAll('*')).map(el => {
                             const style = window.getComputedStyle(el);
                             const bgImage = style.backgroundImage;
                             if (bgImage && bgImage !== 'none' && bgImage.includes('url(')) {
-                                const match = bgImage.match(/url\\(['"]?([^'"]+)['"]?\\)/);
+                                const match = bgImage.match(/url\\(["']?([^"']+)["']?\\)/);
                                 const imageUrl = match ? match[1] : bgImage;
                                 // Convert relative URLs to absolute
                                 const absoluteUrl = imageUrl.startsWith('http') ? imageUrl : new URL(imageUrl, window.location.href).href;
-                                
-                                // Enhanced image classification
-                                const isLogo = /\\/logos?\\/|logo_|_logo|apple-logo|globalnav|nav_/i.test(absoluteUrl);
-                                const isHero = /\\/heroes?\\/|hero_|_hero|promo_hero|banner|main/i.test(absoluteUrl);
-                                const isProduct = /product|iphone|ipad|mac|watch|airpods|vision|_family/i.test(absoluteUrl);
-                                const isLargeImage = /large|largetall|xlarge|_2x|@2x/i.test(absoluteUrl);
-                                const isPNG = /\\.png$/i.test(absoluteUrl);
-                                const isJPG = /\\.(jpg|jpeg)$/i.test(absoluteUrl);
-                                
-                                // Calculate quality score (higher = better for hero/product tiles)
-                                let qualityScore = 0;
-                                if (isHero) qualityScore += 100;
-                                if (isProduct && !isLogo) qualityScore += 80;
-                                if (isLargeImage) qualityScore += 50;
-                                if (isJPG) qualityScore += 30; // JPGs often better for photos
-                                if (isPNG && !isLogo) qualityScore += 20;
-                                if (isLogo) qualityScore -= 100; // Heavily penalize logos
-                                
                                 return {
                                     element: el.tagName.toLowerCase(),
-                                    backgroundImage: absoluteUrl,
                                     className: el.className || '',
                                     id: el.id || '',
-                                    isLogo: isLogo,
-                                    isHero: isHero,
-                                    isProduct: isProduct,
-                                    isHighQuality: qualityScore > 30,
-                                    qualityScore: qualityScore,
-                                    imageType: isHero ? 'hero' : (isProduct && !isLogo ? 'product' : (isLogo ? 'logo' : 'other')),
-                                    dimensions: {
-                                        width: el.offsetWidth || 0,
-                                        height: el.offsetHeight || 0
-                                    }
+                                    backgroundImage: absoluteUrl,
+                                    backgroundSize: style.backgroundSize,
+                                    backgroundPosition: style.backgroundPosition,
+                                    backgroundRepeat: style.backgroundRepeat
                                 };
                             }
                             return null;
-                        }).filter(bg => bg !== null),
+                        }).filter(item => item !== null),
                         
                         // Extract logo and brand images with enhanced Apple-specific detection
                         logoImages: Array.from(document.querySelectorAll('img[alt*="logo" i], img[class*="logo" i], img[id*="logo" i], .logo img, .brand img, header img, nav img, .globalnav img, img[src*="apple"], img[alt*="apple" i]')).map(img => ({
@@ -629,53 +1118,6 @@ class WebsiteScraper:
                                 height: img.naturalHeight || 0
                             }
                         })).filter(logo => logo.hasValidSrc),
-                        
-                        // Extract SVG logos specifically for Apple (since Apple uses SVG logos)
-                        svgLogos: Array.from(document.querySelectorAll('svg')).map(svg => {
-                            const svgRect = svg.getBoundingClientRect();
-                            // More accurate Apple logo detection
-                            const isAppleLogo = svg.closest('a[href="/"]') || svg.closest('.logo') || 
-                                              svg.closest('nav') || svg.closest('header') ||
-                                              svgRect.width < 50 || svg.getAttribute('aria-label')?.toLowerCase().includes('apple');
-                            const isInNavigation = !!svg.closest('nav, header, .globalnav');
-                            
-                            // Extract all path elements with complete data
-                            const paths = Array.from(svg.querySelectorAll('path')).map(path => ({
-                                d: path.getAttribute('d') || '',
-                                fill: path.getAttribute('fill') || svg.getAttribute('fill') || '#f5f5f7',
-                                stroke: path.getAttribute('stroke') || '',
-                                strokeWidth: path.getAttribute('stroke-width') || '',
-                                fillRule: path.getAttribute('fill-rule') || '',
-                                clipRule: path.getAttribute('clip-rule') || ''
-                            }));
-                            
-                            // Get complete SVG attributes
-                            const viewBox = svg.getAttribute('viewBox') || '0 0 14 44';
-                            const width = svg.getAttribute('width') || svgRect.width || '14';
-                            const height = svg.getAttribute('height') || svgRect.height || '44';
-                            const fill = svg.getAttribute('fill') || '#f5f5f7';
-                            
-                            return {
-                                outerHTML: svg.outerHTML,
-                                innerHTML: svg.innerHTML,
-                                viewBox: viewBox,
-                                width: width,
-                                height: height,
-                                fill: fill,
-                                paths: paths,
-                                pathCount: paths.length,
-                                isAppleLogo: isAppleLogo,
-                                isInNavigation: isInNavigation,
-                                position: svgRect,
-                                parentElement: svg.parentElement?.tagName.toLowerCase() || '',
-                                parentClass: svg.parentElement?.className || '',
-                                ariaLabel: svg.getAttribute('aria-label') || '',
-                                role: svg.getAttribute('role') || '',
-                                // Complete path data for Apple logo
-                                completePathData: paths.map(p => p.d).join(' '),
-                                hasCompletePaths: paths.every(p => p.d && p.d.length > 10)
-                            };
-                        }).filter(svg => svg.isAppleLogo || svg.isInNavigation || svg.pathCount > 0),
                         
                         // Extract fonts and typography information with Apple-specific detection
                         fonts: {
@@ -789,43 +1231,9 @@ class WebsiteScraper:
                                           cta.className.includes('more') || cta.className.includes('button')
                         })),
 
-                        // Enhanced color extraction with Apple-specific color patterns
-                        colors: {
-                            textColors: Array.from(new Set(Array.from(document.querySelectorAll("*")).map(el => 
-                                window.getComputedStyle(el).color
-                            ).filter(c => c && c !== "rgba(0, 0, 0, 0)"))).slice(0, 20),
-                            
-                            navigationColors: {
-                                backgroundColor: document.querySelector('nav, header, .globalnav') ? 
-                                    window.getComputedStyle(document.querySelector('nav, header, .globalnav')).backgroundColor : '',
-                                textColor: document.querySelector('nav a, header a, .globalnav a') ? 
-                                    window.getComputedStyle(document.querySelector('nav a, header a, .globalnav a')).color : '',
-                                linkColors: Array.from(document.querySelectorAll('nav a, header a, .globalnav a')).map(a => 
-                                    window.getComputedStyle(a).color
-                                ).filter((v, i, a) => a.indexOf(v) === i)
-                            },
-                            
-                            backgroundColors: Array.from(new Set(Array.from(document.querySelectorAll("*")).map(el => 
-                                window.getComputedStyle(el).backgroundColor
-                            ).filter(c => c && c !== "rgba(0, 0, 0, 0)" && c !== "transparent"))).slice(0, 15),
-                            
-                            // Apple-specific color detection
-                            hasAppleColors: {
-                                darkNavigation: document.querySelector('nav, header, .globalnav') ? 
-                                    window.getComputedStyle(document.querySelector('nav, header, .globalnav')).backgroundColor.includes('rgba(0, 0, 0') ||
-                                    window.getComputedStyle(document.querySelector('nav, header, .globalnav')).backgroundColor.includes('rgb(0, 0, 0') : false,
-                                lightText: Array.from(document.querySelectorAll('nav a, header a, .globalnav a')).some(a => {
-                                    const color = window.getComputedStyle(a).color;
-                                    return color.includes('245, 245, 247') || color.includes('rgb(245, 245, 247)') || color.includes('#f5f5f7');
-                                }),
-                                appleBlue: Array.from(document.querySelectorAll('a, button')).some(el => {
-                                    const color = window.getComputedStyle(el).color;
-                                    const bgColor = window.getComputedStyle(el).backgroundColor;
-                                    return color.includes('0, 122, 255') || bgColor.includes('0, 122, 255') || 
-                                           color.includes('#007aff') || bgColor.includes('#007aff');
-                                })
-                            }
-                        },
+                        colors: Array.from(new Set(Array.from(document.querySelectorAll("*")).map(el => 
+                            window.getComputedStyle(el).color
+                        ).filter(c => c && c !== "rgba(0, 0, 0, 0)"))).slice(0, 20),
                         
                         viewport: {
                             width: window.innerWidth,
