@@ -25,11 +25,17 @@ You'll need API keys from the following services:
 1. **Anthropic API Key**: Sign up at [Anthropic Console](https://console.anthropic.com/)
 2. **Browserbase API Key & Project ID**: Sign up at [Browserbase](https://www.browserbase.com/)
 
-and make the .env file with
-ANTHROPIC_API_KEY="your-key"
-BROWSERBASE_API_KEY="your-key"
-BROWSERBASE_PROJECT_ID="your-key"
+## Environment Variables
 
+Create a `.env` file in the `backend` directory or export the following environment variables:
+
+```bash
+export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
+export BROWSERBASE_API_KEY="your-browserbase-api-key-here"
+export BROWSERBASE_PROJECT_ID="your-browserbase-project-id-here"
+```
+
+**Note**: Replace the placeholder values with your actual API keys.
 ## Installation & Setup
 
 ### 1. Clone the Repository
